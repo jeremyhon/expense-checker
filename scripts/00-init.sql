@@ -72,17 +72,18 @@ DROP POLICY IF EXISTS "Users can manage their own statements" ON public.statemen
 DROP POLICY IF EXISTS "Users can manage their own expenses" ON public.expenses;
 
 -- Create RLS policies that allow users to access their own data.
--- The policy also allows server-side operations (where auth.uid() is NULL)
--- to access the data, which is necessary for server actions.
+-- SECURITY: Explicitly check auth.uid() IS NOT NULL to prevent unauthorized access.
+-- When auth.uid() is NULL, (auth.uid() = user_id) evaluates to NULL, 
+-- which PostgreSQL RLS treats as permissive, allowing unauthorized access.
 CREATE POLICY "Users can manage their own statements"
   ON public.statements
   FOR ALL
-  USING ( (auth.uid() = user_id) );
+  USING ( auth.uid() IS NOT NULL AND auth.uid() = user_id );
 
 CREATE POLICY "Users can manage their own expenses"
   ON public.expenses
   FOR ALL
-  USING ( (auth.uid() = user_id) );
+  USING ( auth.uid() IS NOT NULL AND auth.uid() = user_id );
 
 -- ──────────────────────────────────────────────────────────────────────────
 --                                TRIGGERS
