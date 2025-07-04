@@ -8,4 +8,3 @@
   - Consider if the anonymous key has elevated permissions it shouldn't have
 
 ## UI Improvements
-- [ ] Implement filtering and sorting on table headers

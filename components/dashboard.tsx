@@ -1,5 +1,5 @@
 "use client";
-import { Pencil, Search, Trash2, Upload } from "lucide-react";
+import { Search, Upload } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,15 +29,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { createClient } from "@/lib/supabase/client";
+import { ExpensesTable } from "./expenses-table";
+import type { Expense } from "./expenses-table-columns";
 import { UploadDialog } from "./upload-dialog";
 
 const mockExpenses = [
@@ -120,8 +114,6 @@ const mockExpenses = [
   },
 ];
 
-type Expense = (typeof mockExpenses)[0];
-
 export function Dashboard() {
   const [isUploadOpen, setUploadOpen] = useState(false);
   const [expenses, setExpenses] = useState<Expense[]>(mockExpenses);
@@ -140,14 +132,14 @@ export function Dashboard() {
 
   useEffect(() => {
     const supabase = createClient();
-    
+
     // Fetch existing expenses first
     const fetchExpenses = async () => {
       const { data, error } = await supabase
         .from("expenses")
         .select("*")
         .order("date", { ascending: false });
-      
+
       if (data) {
         const formattedExpenses = data.map((expense) => ({
           id: expense.id,
@@ -160,15 +152,14 @@ export function Dashboard() {
           originalAmount: Number.parseFloat(
             expense.original_amount || expense.amount_sgd
           ),
-          originalCurrency:
-            expense.original_currency || expense.currency,
+          originalCurrency: expense.original_currency || expense.currency,
         }));
         setExpenses(formattedExpenses);
       }
     };
-    
+
     fetchExpenses();
-    
+
     // Set up realtime subscription for new expenses
     const channel = supabase
       .channel("realtime-expenses")
@@ -204,17 +195,6 @@ export function Dashboard() {
       supabase.removeChannel(channel);
     };
   }, []);
-
-  // Filter expenses based on search query
-  const filteredExpenses = expenses.filter((expense) => {
-    // Search filter
-    const matchesSearch =
-      expense.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      expense.category.toLowerCase().includes(searchQuery.toLowerCase());
-
-    return matchesSearch;
-  });
-
 
   const categories = [
     "Food & Dining",
@@ -311,113 +291,18 @@ export function Dashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="hidden md:table-cell">
-                    Date
-                  </TableHead>
-                  <TableHead className="hidden sm:table-cell">
-                    Merchant
-                  </TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead className="text-right">
-                    Amount (SGD)
-                  </TableHead>
-                  <TableHead className="text-right hidden lg:table-cell">
-                    Foreign Currency
-                  </TableHead>
-                  <TableHead className="hidden lg:table-cell">Description</TableHead>
-                  <TableHead>
-                    <span className="sr-only">Actions</span>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredExpenses.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={7}
-                      className="text-center text-muted-foreground py-8"
-                    >
-                      No expenses found matching your filters.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredExpenses.map((expense) => (
-                    <TableRow key={expense.id}>
-                      <TableCell className="hidden md:table-cell">
-                        {expense.date}
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell text-muted-foreground">
-                        {expense.merchant}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {expense.category}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {expense.amount.toLocaleString("en-US", {
-                          style: "currency",
-                          currency: "SGD",
-                        })}
-                      </TableCell>
-                      <TableCell className="text-right hidden lg:table-cell text-muted-foreground">
-                        {expense.originalCurrency === "SGD" ? (
-                          <span className="text-xs">-</span>
-                        ) : (
-                          expense.originalAmount.toLocaleString(
-                            "en-US",
-                            {
-                              style: "currency",
-                              currency: expense.originalCurrency,
-                            }
-                          )
-                        )}
-                      </TableCell>
-                      <TableCell className="font-medium hidden lg:table-cell">
-                        {expense.description}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleEdit(expense)}
-                            className="h-8 w-8 p-0"
-                          >
-                            <Pencil className="h-4 w-4" />
-                            <span className="sr-only">
-                              Edit expense
-                            </span>
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDelete(expense)}
-                            className="h-8 w-8 p-0"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            <span className="sr-only">
-                              Delete expense
-                            </span>
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+            <ExpensesTable
+              expenses={expenses}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              globalFilter={searchQuery}
+            />
           </CardContent>
           <CardFooter>
             <div className="text-xs text-muted-foreground">
-              Showing <strong>1-{filteredExpenses.length}</strong> of{" "}
+              Showing <strong>1-{expenses.length}</strong> of{" "}
               <strong>{expenses.length}</strong> expenses
-              {searchQuery && (
-                <span className="ml-2">(filtered)</span>
-              )}
+              {searchQuery && <span className="ml-2">(filtered)</span>}
             </div>
           </CardFooter>
         </Card>

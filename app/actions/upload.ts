@@ -15,7 +15,10 @@ const expenseSchema = z.object({
     .describe("The date of the transaction in YYYY-MM-DD format."),
   merchant: z.string().describe("The merchant or payee name."),
   description: z.string().describe("A brief description of the transaction."),
-  amount_sgd: z.number().nullable().describe("The transaction amount in SGD if available on statement."),
+  amount_sgd: z
+    .number()
+    .nullable()
+    .describe("The transaction amount in SGD if available on statement."),
   original_amount: z.number().describe("The original transaction amount."),
   original_currency: z
     .string()
@@ -37,23 +40,38 @@ const expenseSchema = z.object({
 });
 
 // Currency conversion function using exchangerate-api.com
-async function convertToSGD(amount: number, fromCurrency: string, date: string): Promise<number> {
+async function convertToSGD(
+  amount: number,
+  fromCurrency: string,
+  date: string
+): Promise<number> {
   if (fromCurrency === "SGD") {
     return amount;
   }
 
   try {
     // Using authenticated API endpoint for better reliability
-    const response = await fetch(`https://v6.exchangerate-api.com/v6/407edb4c8c755c3df20b18e6/latest/${fromCurrency}`);
+    const response = await fetch(
+      `https://v6.exchangerate-api.com/v6/407edb4c8c755c3df20b18e6/latest/${fromCurrency}`
+    );
     const data = await response.json();
 
-    if (data.result === "success" && data.conversion_rates && data.conversion_rates.SGD) {
+    if (
+      data.result === "success" &&
+      data.conversion_rates &&
+      data.conversion_rates.SGD
+    ) {
       return Math.round(amount * data.conversion_rates.SGD * 100) / 100; // Round to 2 decimal places
     }
 
-    throw new Error(`SGD rate not available for ${fromCurrency}: ${data.error_type || 'Unknown error'}`);
+    throw new Error(
+      `SGD rate not available for ${fromCurrency}: ${data.error_type || "Unknown error"}`
+    );
   } catch (error) {
-    console.error(`Currency conversion failed for ${fromCurrency} to SGD:`, error);
+    console.error(
+      `Currency conversion failed for ${fromCurrency} to SGD:`,
+      error
+    );
     // Fallback: return original amount if conversion fails
     return amount;
   }
@@ -100,7 +118,7 @@ export async function uploadStatement(formData: FormData) {
     // F-6: Persistent storage (upload to Vercel Blob)
     const blob = await put(file.name, file, {
       access: "public",
-      addRandomSuffix: true  // Allow multiple uploads during iteration
+      addRandomSuffix: true, // Allow multiple uploads during iteration
     });
 
     // Insert statement record (duplicate detection disabled but checksum required by schema)
@@ -145,7 +163,7 @@ async function processPdf(
   const supabase = await createClient();
   try {
     // 1. Convert PDF buffer to base64 for AI SDK
-    const base64Pdf = fileBuffer.toString('base64');
+    const base64Pdf = fileBuffer.toString("base64");
 
     // 2. F-7: Use AI to extract and categorize expenses directly from PDF with streaming
     const { elementStream } = streamObject({
@@ -203,11 +221,13 @@ For foreign currency transactions, extract both amounts only if both are clearly
         expenseCount++;
 
         // Convert to SGD if not available from statement
-        const amountSgd = expense.amount_sgd || await convertToSGD(
-          expense.original_amount,
-          expense.original_currency,
-          expense.date
-        );
+        const amountSgd =
+          expense.amount_sgd ||
+          (await convertToSGD(
+            expense.original_amount,
+            expense.original_currency,
+            expense.date
+          ));
 
         // F-4: Duplicate expense detection hash
         const lineHash = crypto
@@ -225,7 +245,8 @@ For foreign currency transactions, extract both amounts only if both are clearly
           original_amount: expense.original_amount,
           original_currency: expense.original_currency,
           currency: expense.original_currency,
-          category: expense.original_currency !== "SGD" ? "Travel" : expense.category,
+          category:
+            expense.original_currency !== "SGD" ? "Travel" : expense.category,
           line_hash: lineHash,
         };
 
@@ -238,7 +259,10 @@ For foreign currency transactions, extract both amounts only if both are clearly
           .select();
 
         if (insertError && insertError.code !== "23505") {
-          console.warn(`Failed to insert expense ${expenseCount}:`, insertError.message);
+          console.warn(
+            `Failed to insert expense ${expenseCount}:`,
+            insertError.message
+          );
         }
 
         // UI updates happen via Supabase realtime subscriptions
@@ -249,7 +273,9 @@ For foreign currency transactions, extract both amounts only if both are clearly
       throw new Error("AI failed to extract any transactions.");
     }
 
-    console.log(`Successfully processed ${expenseCount} expenses from statement ${statementId}`);
+    console.log(
+      `Successfully processed ${expenseCount} expenses from statement ${statementId}`
+    );
 
     // 4. No batch insert needed - expenses are inserted as they stream
 

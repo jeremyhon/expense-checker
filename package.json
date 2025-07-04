@@ -47,6 +47,7 @@
     "@radix-ui/react-tooltip": "1.1.6",
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
+    "@tanstack/react-table": "^8.21.3",
     "@vercel/blob": "latest",
     "ai": "^4.3.16",
     "autoprefixer": "^10.4.20",
