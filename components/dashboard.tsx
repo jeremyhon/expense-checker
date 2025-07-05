@@ -158,11 +158,27 @@ export function Dashboard() {
     setDeletingExpense(expense);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!deletingExpense) return;
 
-    setExpenses(expenses.filter((exp) => exp.id !== deletingExpense.id));
-    setDeletingExpense(null);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("expenses")
+        .delete()
+        .eq("id", deletingExpense.id);
+
+      if (error) {
+        console.error("Failed to delete expense:", error);
+        return;
+      }
+
+      // Only remove from local state if database deletion succeeded
+      setExpenses(expenses.filter((exp) => exp.id !== deletingExpense.id));
+      setDeletingExpense(null);
+    } catch (error) {
+      console.error("Error deleting expense:", error);
+    }
   };
 
   return (
