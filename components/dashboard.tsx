@@ -36,89 +36,10 @@ import {
 import { ExpensesTable } from "./expenses-table";
 import { UploadDialog } from "./upload-dialog";
 
-const mockExpenses = [
-  {
-    id: "txn_1",
-    description: "Starbucks Coffee",
-    merchant: "Starbucks",
-    category: "Food & Dining",
-    amount: 7.5,
-    date: "2024-06-28",
-    currency: "SGD",
-    originalAmount: 7.5,
-    originalCurrency: "SGD",
-  },
-  {
-    id: "txn_2",
-    description: "Netflix Subscription",
-    merchant: "Netflix",
-    category: "Entertainment",
-    amount: 12.99,
-    date: "2024-06-27",
-    currency: "SGD",
-    originalAmount: 12.99,
-    originalCurrency: "SGD",
-  },
-  {
-    id: "txn_3",
-    description: "Uniqlo T-Shirt",
-    merchant: "Uniqlo",
-    category: "Shopping",
-    amount: 29.9,
-    date: "2024-06-27",
-    currency: "SGD",
-    originalAmount: 29.9,
-    originalCurrency: "SGD",
-  },
-  {
-    id: "txn_4",
-    description: "Grab Ride to Office",
-    merchant: "Grab",
-    category: "Transportation",
-    amount: 18.2,
-    date: "2024-06-26",
-    currency: "SGD",
-    originalAmount: 18.2,
-    originalCurrency: "SGD",
-  },
-  {
-    id: "txn_5",
-    description: "Fairprice Groceries",
-    merchant: "FairPrice",
-    category: "Food & Dining",
-    amount: 85.45,
-    date: "2024-06-25",
-    currency: "SGD",
-    originalAmount: 85.45,
-    originalCurrency: "SGD",
-  },
-  {
-    id: "txn_6",
-    description: "Flight to Bali",
-    merchant: "Singapore Airlines",
-    category: "Travel",
-    amount: 250.0,
-    date: "2024-06-24",
-    currency: "SGD",
-    originalAmount: 3750000,
-    originalCurrency: "IDR",
-  },
-  {
-    id: "txn_7",
-    description: "Cinema Tickets",
-    merchant: "Golden Village",
-    category: "Entertainment",
-    amount: 25.0,
-    date: "2024-06-23",
-    currency: "SGD",
-    originalAmount: 25.0,
-    originalCurrency: "SGD",
-  },
-];
 
 export function Dashboard() {
   const [isUploadOpen, setUploadOpen] = useState(false);
-  const [expenses, setExpenses] = useState<DisplayExpense[]>(mockExpenses);
+  const [expenses, setExpenses] = useState<DisplayExpense[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [editingExpense, setEditingExpense] = useState<DisplayExpense | null>(
     null
