@@ -14,7 +14,8 @@
     "check:fix": "bun biome check --write .",
     "typecheck": "tsc --noEmit",
     "ci": "bun run lint && bun run typecheck && bun run build",
-    "reset": "bun run --tsconfig-override tsconfig.json scripts/reset-db.ts"
+    "reset": "bun run --tsconfig-override tsconfig.json scripts/reset-db.ts",
+    "db:push": "source .env.local && supabase db push -p $SUPABASE_DB_PW"
   },
   "dependencies": {
     "@ai-sdk/google": "^1.2.22",
