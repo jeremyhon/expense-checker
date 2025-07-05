@@ -80,6 +80,7 @@ const SidebarProvider = React.forwardRef<
           _setOpen(openState);
         }
         if (typeof document !== "undefined") {
+          // biome-ignore lint/suspicious/noDocumentCookie: Legacy cookie API needed for broad browser compatibility
           document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
         }
       },

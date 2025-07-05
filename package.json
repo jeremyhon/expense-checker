@@ -12,6 +12,8 @@
     "format:fix": "bun biome format --write .",
     "check": "bun biome check .",
     "check:fix": "bun biome check --write .",
+    "typecheck": "tsc --noEmit",
+    "ci": "bun run lint && bun run typecheck && bun run build",
     "reset": "bun run --tsconfig-override tsconfig.json scripts/reset-db.ts"
   },
   "dependencies": {
@@ -47,6 +49,7 @@
     "@radix-ui/react-tooltip": "1.1.6",
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
+    "@t3-oss/env-nextjs": "^0.13.8",
     "@tanstack/react-table": "^8.21.3",
     "@vercel/blob": "latest",
     "ai": "^4.3.16",

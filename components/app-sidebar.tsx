@@ -57,11 +57,9 @@ export function AppSidebar() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <a href="#">
-                      <ShoppingCart className="h-5 w-5" />
-                      <span className="sr-only">Expenses</span>
-                    </a>
+                  <SidebarMenuButton>
+                    <ShoppingCart className="h-5 w-5" />
+                    <span className="sr-only">Expenses</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </TooltipTrigger>
@@ -70,11 +68,9 @@ export function AppSidebar() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <a href="#">
-                      <Package className="h-5 w-5" />
-                      <span className="sr-only">Statements</span>
-                    </a>
+                  <SidebarMenuButton>
+                    <Package className="h-5 w-5" />
+                    <span className="sr-only">Statements</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </TooltipTrigger>
@@ -83,11 +79,9 @@ export function AppSidebar() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <a href="#">
-                      <Users2 className="h-5 w-5" />
-                      <span className="sr-only">Categories</span>
-                    </a>
+                  <SidebarMenuButton>
+                    <Users2 className="h-5 w-5" />
+                    <span className="sr-only">Categories</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </TooltipTrigger>
@@ -96,11 +90,9 @@ export function AppSidebar() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <a href="#">
-                      <LineChart className="h-5 w-5" />
-                      <span className="sr-only">Analytics</span>
-                    </a>
+                  <SidebarMenuButton>
+                    <LineChart className="h-5 w-5" />
+                    <span className="sr-only">Analytics</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </TooltipTrigger>
