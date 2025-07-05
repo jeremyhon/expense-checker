@@ -1,5 +1,5 @@
 "use client";
-import { Search, Upload } from "lucide-react";
+import { Search, Upload, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -33,13 +34,14 @@ import {
   transformDbRowsToDisplay,
   transformDbRowToDisplay,
 } from "@/lib/utils/expense-transformers";
+import { markDuplicates } from "@/lib/utils/duplicate-detector";
 import { ExpensesTable } from "./expenses-table";
 import { UploadDialog } from "./upload-dialog";
 
 
 export function Dashboard() {
   const [isUploadOpen, setUploadOpen] = useState(false);
-  const [expenses, setExpenses] = useState<DisplayExpense[]>([]);
+  const [expenses, setExpenses] = useState<Array<DisplayExpense & { isDuplicate: boolean }>>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [editingExpense, setEditingExpense] = useState<DisplayExpense | null>(
     null
@@ -47,6 +49,7 @@ export function Dashboard() {
   const [deletingExpense, setDeletingExpense] = useState<DisplayExpense | null>(
     null
   );
+  const [fastDeleteEnabled, setFastDeleteEnabled] = useState(false);
   const [editForm, setEditForm] = useState({
     description: "",
     merchant: "",
@@ -70,7 +73,8 @@ export function Dashboard() {
       if (data) {
         try {
           const formattedExpenses = transformDbRowsToDisplay(data);
-          setExpenses(formattedExpenses);
+          const expensesWithDuplicates = markDuplicates(formattedExpenses);
+          setExpenses(expensesWithDuplicates);
         } catch (error) {
           console.error("Failed to transform expenses:", error);
         }
@@ -92,7 +96,10 @@ export function Dashboard() {
         (payload) => {
           try {
             const formattedExpense = transformDbRowToDisplay(payload.new);
-            setExpenses((prevExpenses) => [formattedExpense, ...prevExpenses]);
+            setExpenses((prevExpenses) => {
+              const newExpenses = [formattedExpense, ...prevExpenses.map(e => ({ ...e, isDuplicate: false }))]; // Reset duplicate flags
+              return markDuplicates(newExpenses);
+            });
           } catch (error) {
             console.error("Failed to transform new expense:", error);
           }
@@ -119,7 +126,7 @@ export function Dashboard() {
 
   const currencies = ["SGD", "USD", "EUR", "GBP", "JPY", "IDR", "MYR", "THB"];
 
-  const handleEdit = (expense: DisplayExpense) => {
+  const handleEdit = (expense: DisplayExpense & { isDuplicate: boolean }) => {
     setEditingExpense(expense);
     setEditForm({
       description: expense.description,
@@ -154,19 +161,27 @@ export function Dashboard() {
     setEditingExpense(null);
   };
 
-  const handleDelete = (expense: DisplayExpense) => {
-    setDeletingExpense(expense);
+  const handleDelete = (expense: DisplayExpense & { isDuplicate: boolean }) => {
+    if (fastDeleteEnabled) {
+      // Fast delete - skip confirmation dialog
+      setDeletingExpense(expense);
+      confirmDelete(expense);
+    } else {
+      // Normal delete - show confirmation dialog
+      setDeletingExpense(expense);
+    }
   };
 
-  const confirmDelete = async () => {
-    if (!deletingExpense) return;
+  const confirmDelete = async (expenseToDelete?: DisplayExpense & { isDuplicate: boolean }) => {
+    const expense = expenseToDelete || deletingExpense;
+    if (!expense) return;
 
     try {
       const supabase = createClient();
       const { error } = await supabase
         .from("expenses")
         .delete()
-        .eq("id", deletingExpense.id);
+        .eq("id", expense.id);
 
       if (error) {
         console.error("Failed to delete expense:", error);
@@ -174,7 +189,7 @@ export function Dashboard() {
       }
 
       // Only remove from local state if database deletion succeeded
-      setExpenses(expenses.filter((exp) => exp.id !== deletingExpense.id));
+      setExpenses(expenses.filter((exp) => exp.id !== expense.id));
       setDeletingExpense(null);
     } catch (error) {
       console.error("Error deleting expense:", error);
@@ -194,7 +209,18 @@ export function Dashboard() {
             className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[336px]"
           />
         </div>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Zap className="h-4 w-4 text-muted-foreground" />
+            <Label htmlFor="fast-delete" className="text-sm font-medium">
+              Fast Delete
+            </Label>
+            <Switch
+              id="fast-delete"
+              checked={fastDeleteEnabled}
+              onCheckedChange={setFastDeleteEnabled}
+            />
+          </div>
           <Button
             size="sm"
             className="h-8 gap-1"
@@ -373,7 +399,7 @@ export function Dashboard() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog
-        open={!!deletingExpense}
+        open={!!deletingExpense && !fastDeleteEnabled}
         onOpenChange={() => setDeletingExpense(null)}
       >
         <DialogContent className="sm:max-w-[425px]">

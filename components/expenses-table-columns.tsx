@@ -6,15 +6,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { DisplayExpense } from "@/lib/types/expense";
 
+type ExpenseWithDuplicate = DisplayExpense & { isDuplicate: boolean };
+
 interface ExpenseTableColumnsProps {
-  onEdit: (expense: DisplayExpense) => void;
-  onDelete: (expense: DisplayExpense) => void;
+  onEdit: (expense: ExpenseWithDuplicate) => void;
+  onDelete: (expense: ExpenseWithDuplicate) => void;
 }
 
 export const createExpenseColumns = ({
   onEdit,
   onDelete,
-}: ExpenseTableColumnsProps): ColumnDef<DisplayExpense>[] => [
+}: ExpenseTableColumnsProps): ColumnDef<ExpenseWithDuplicate>[] => [
   {
     accessorKey: "date",
     header: ({ column }) => (
@@ -27,9 +29,21 @@ export const createExpenseColumns = ({
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
-    cell: ({ row }) => (
-      <div className="hidden md:table-cell">{row.getValue("date")}</div>
-    ),
+    cell: ({ row }) => {
+      const expense = row.original;
+      return (
+        <div className="hidden md:table-cell">
+          <div className="flex items-center gap-2">
+            {row.getValue("date")}
+            {expense.isDuplicate && (
+              <Badge variant="secondary" className="text-xs">
+                Possible Duplicate
+              </Badge>
+            )}
+          </div>
+        </div>
+      );
+    },
   },
   {
     accessorKey: "merchant",
@@ -43,11 +57,21 @@ export const createExpenseColumns = ({
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
-    cell: ({ row }) => (
-      <div className="hidden sm:table-cell text-muted-foreground">
-        {row.getValue("merchant")}
-      </div>
-    ),
+    cell: ({ row }) => {
+      const expense = row.original;
+      return (
+        <div className="hidden sm:table-cell text-muted-foreground">
+          <div className="flex items-center gap-2">
+            {row.getValue("merchant")}
+            {expense.isDuplicate && (
+              <Badge variant="secondary" className="text-xs sm:hidden">
+                Duplicate
+              </Badge>
+            )}
+          </div>
+        </div>
+      );
+    },
   },
   {
     accessorKey: "category",
