@@ -3,7 +3,7 @@ import { z } from "zod";
 /**
  * Expense categories available in the system
  */
-export const EXPENSE_CATEGORIES = [
+const EXPENSE_CATEGORIES = [
   "Food & Drink",
   "Transport",
   "Shopping",
@@ -16,21 +16,6 @@ export const EXPENSE_CATEGORIES = [
 ] as const;
 
 export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
-
-/**
- * Core expense data fields shared across all use cases
- */
-export const baseExpenseSchema = z.object({
-  date: z.string().date("Date must be in YYYY-MM-DD format"),
-  description: z.string().min(1, "Description is required"),
-  merchant: z.string().min(1, "Merchant is required"),
-  category: z.enum(EXPENSE_CATEGORIES),
-  amount_sgd: z.number().positive("Amount must be positive"),
-  original_amount: z.number().positive("Original amount must be positive"),
-  original_currency: z.string().length(3, "Currency must be 3 characters"),
-});
-
-export type BaseExpense = z.infer<typeof baseExpenseSchema>;
 
 /**
  * Expense data as provided by AI extraction (may have nullable SGD conversion)
@@ -54,20 +39,6 @@ export const aiExpenseSchema = z.object({
 });
 
 export type AIExpenseInput = z.infer<typeof aiExpenseSchema>;
-
-/**
- * Database expense record with all metadata
- */
-export const databaseExpenseSchema = baseExpenseSchema.extend({
-  id: z.string().uuid("ID must be a valid UUID"),
-  statement_id: z.string().uuid("Statement ID must be a valid UUID"),
-  user_id: z.string().uuid("User ID must be a valid UUID"),
-  created_at: z.string().datetime("Created at must be a valid datetime"),
-  currency: z.string().length(3, "Currency must be 3 characters"),
-  line_hash: z.string().min(1, "Line hash is required"),
-});
-
-export type DatabaseExpense = z.infer<typeof databaseExpenseSchema>;
 
 /**
  * Database query result (fields come as strings from Supabase)
@@ -138,9 +109,3 @@ export interface UploadResult {
  * Statement processing status
  */
 export type StatementStatus = "processing" | "completed" | "failed";
-
-// Legacy exports for backward compatibility (to be removed after migration)
-export const expenseSchema = aiExpenseSchema;
-export type ExpenseInput = AIExpenseInput;
-export type ExpenseRecord = ExpenseInsertData;
-export type ExpenseDatabaseRow = DatabaseExpenseRow;

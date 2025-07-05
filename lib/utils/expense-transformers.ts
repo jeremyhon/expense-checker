@@ -1,7 +1,6 @@
 import { z } from "zod";
 import type {
   AIExpenseInput,
-  DatabaseExpenseRow,
   DisplayExpense,
   ExpenseInsertData,
 } from "@/lib/types/expense";
@@ -63,50 +62,6 @@ export function transformAIInputToInsert(
 
   // Validate the transformed data
   return expenseInsertDataSchema.parse(insertData);
-}
-
-/**
- * Safely parse database expense row with detailed error handling
- */
-export function parseDbExpenseRow(data: unknown): DatabaseExpenseRow {
-  try {
-    return databaseExpenseRowSchema.parse(data);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      console.error("Database expense row validation failed:", {
-        errors: error.errors,
-        data,
-      });
-      throw new Error(
-        `Invalid database expense row: ${error.errors
-          .map((e) => `${e.path.join(".")}: ${e.message}`)
-          .join(", ")}`
-      );
-    }
-    throw error;
-  }
-}
-
-/**
- * Safely parse display expense with detailed error handling
- */
-export function parseDisplayExpense(data: unknown): DisplayExpense {
-  try {
-    return displayExpenseSchema.parse(data);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      console.error("Display expense validation failed:", {
-        errors: error.errors,
-        data,
-      });
-      throw new Error(
-        `Invalid display expense: ${error.errors
-          .map((e) => `${e.path.join(".")}: ${e.message}`)
-          .join(", ")}`
-      );
-    }
-    throw error;
-  }
 }
 
 /**
