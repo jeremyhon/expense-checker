@@ -25,7 +25,7 @@ supabase --version    # Check Supabase CLI version
 supabase db reset     # Reset local database
 supabase db diff      # Show database schema changes
 supabase migration new <name>  # Create new migration
-supabase db push      # Push migrations to remote database
+bun run db:push       # Push migrations to remote database (uses .env.local password)
 
 # Database Reset (Development)
 bun run reset        # Reset database and clear blob storage (uses scripts/reset-db.ts)
