@@ -12,6 +12,8 @@
     "format:fix": "bun biome format --write .",
     "check": "bun biome check .",
     "check:fix": "bun biome check --write .",
+    "typecheck": "tsc --noEmit",
+    "ci": "bun run lint && bun run typecheck && bun run build",
     "reset": "bun run --tsconfig-override tsconfig.json scripts/reset-db.ts"
   },
   "dependencies": {
