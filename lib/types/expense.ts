@@ -47,13 +47,13 @@ export const databaseExpenseRowSchema = z.object({
   id: z.string().uuid(),
   statement_id: z.string().uuid(),
   user_id: z.string().uuid(),
-  created_at: z.string().datetime(),
+  created_at: z.string(), // Supabase returns TIMESTAMPTZ as ISO string
   date: z.string().date(),
   description: z.string().min(1),
   merchant: z.string().nullable(),
   category: z.enum(EXPENSE_CATEGORIES),
-  amount_sgd: z.string(),
-  original_amount: z.string().nullable(),
+  amount_sgd: z.string(), // Supabase returns NUMERIC as string
+  original_amount: z.string().nullable(), // Supabase returns NUMERIC as string
   original_currency: z.string().nullable(),
   currency: z.string().length(3),
   line_hash: z.string().min(1),
