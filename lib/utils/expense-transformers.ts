@@ -28,6 +28,7 @@ export function transformDbRowToDisplay(row: unknown): DisplayExpense {
     originalAmount: validatedRow.original_amount || validatedRow.amount_sgd,
     originalCurrency: validatedRow.original_currency || validatedRow.currency,
     currency: "SGD",
+    createdAt: validatedRow.created_at,
   };
 
   // Validate the transformed data

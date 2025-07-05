@@ -74,6 +74,7 @@ export const displayExpenseSchema = z.object({
   originalAmount: z.number().positive(),
   originalCurrency: z.string().length(3),
   currency: z.string().length(3),
+  createdAt: z.string(), // ISO string timestamp
 });
 
 export type DisplayExpense = z.infer<typeof displayExpenseSchema>;

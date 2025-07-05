@@ -134,6 +134,8 @@ function getHeaderClassName(columnId: string): string {
       return "text-right hidden lg:table-cell";
     case "description":
       return "hidden lg:table-cell";
+    case "createdAt":
+      return "hidden xl:table-cell";
     case "amount":
       return "text-right";
     default:
@@ -151,6 +153,8 @@ function getCellClassName(columnId: string): string {
       return "text-right hidden lg:table-cell text-muted-foreground";
     case "description":
       return "font-medium hidden lg:table-cell";
+    case "createdAt":
+      return "hidden xl:table-cell";
     case "amount":
       return "text-right";
     default:
