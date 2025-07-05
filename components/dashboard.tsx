@@ -1,7 +1,6 @@
 "use client";
 import { Search, Upload } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -28,8 +27,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
 import { createClient } from "@/lib/supabase/client";
+import type { ExpenseDatabaseRow } from "@/lib/types/expense";
 import { ExpensesTable } from "./expenses-table";
 import type { Expense } from "./expenses-table-columns";
 import { UploadDialog } from "./upload-dialog";
@@ -135,7 +134,7 @@ export function Dashboard() {
 
     // Fetch existing expenses first
     const fetchExpenses = async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("expenses")
         .select("*")
         .order("date", { ascending: false });
@@ -171,8 +170,8 @@ export function Dashboard() {
           table: "expenses",
         },
         (payload) => {
-          const newExpense = payload.new as any;
-          const formattedExpense = {
+          const newExpense = payload.new as ExpenseDatabaseRow;
+          const formattedExpense: Expense = {
             id: newExpense.id,
             description: newExpense.description,
             merchant: newExpense.merchant || "",

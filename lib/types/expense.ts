@@ -69,3 +69,22 @@ export interface UploadResult {
  * Statement processing status
  */
 export type StatementStatus = "processing" | "completed" | "failed";
+
+/**
+ * Expense as returned from database queries (Supabase realtime payload)
+ */
+export interface ExpenseDatabaseRow {
+  id: string;
+  description: string;
+  merchant: string | null;
+  category: string;
+  amount_sgd: string;
+  date: string;
+  original_amount: string | null;
+  original_currency: string | null;
+  currency: string;
+  statement_id?: string;
+  user_id?: string;
+  line_hash?: string;
+  created_at?: string;
+}
