@@ -119,13 +119,6 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
                 )}
               </Button>
             </form>
-
-            <div className="mt-4 p-3 bg-muted rounded-md text-sm text-muted-foreground">
-              <p className="font-medium mb-1">Debug Steps:</p>
-              <p>1. Check browser console for detailed errors</p>
-              <p>2. Verify Supabase URL/Key in environment</p>
-              <p>3. Check Supabase auth settings</p>
-            </div>
           </CardContent>
         </Card>
       </div>

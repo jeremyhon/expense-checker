@@ -51,7 +51,7 @@ export function ExpensesTable({
       columnFilters,
       globalFilter,
     },
-    globalFilterFn: (row, columnId, filterValue) => {
+    globalFilterFn: (row, _columnId, filterValue) => {
       const searchValue = filterValue.toLowerCase();
       const description = row.getValue("description") as string;
       const category = row.getValue("category") as string;

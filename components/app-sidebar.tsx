@@ -34,7 +34,7 @@ export function AppSidebar() {
     <Sidebar className="hidden border-r sm:flex">
       <SidebarContent>
         <SidebarHeader>
-          <a href="#" className="flex items-center gap-2 font-semibold">
+          <a href="/" className="flex items-center gap-2 font-semibold">
             <Package2 className="h-6 w-6" />
             <span>Ledger</span>
           </a>
@@ -45,7 +45,7 @@ export function AppSidebar() {
               <TooltipTrigger asChild>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive>
-                    <a href="#">
+                    <a href="/">
                       <Home className="h-5 w-5" />
                       <span className="sr-only">Dashboard</span>
                     </a>
