@@ -18,15 +18,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { DisplayExpense } from "@/lib/types/expense";
+import type { DisplayExpenseWithDuplicate } from "@/lib/types/expense";
 
-type ExpenseWithDuplicate = DisplayExpense & { isDuplicate: boolean };
 import { createExpenseColumns } from "./expenses-table-columns";
 
 interface ExpensesTableProps {
-  expenses: ExpenseWithDuplicate[];
-  onEdit: (expense: ExpenseWithDuplicate) => void;
-  onDelete: (expense: ExpenseWithDuplicate) => void;
+  expenses: DisplayExpenseWithDuplicate[];
+  onEdit: (expense: DisplayExpenseWithDuplicate) => void;
+  onDelete: (expense: DisplayExpenseWithDuplicate) => void;
   globalFilter: string;
 }
 

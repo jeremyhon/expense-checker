@@ -4,19 +4,17 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { DisplayExpense } from "@/lib/types/expense";
-
-type ExpenseWithDuplicate = DisplayExpense & { isDuplicate: boolean };
+import type { DisplayExpenseWithDuplicate } from "@/lib/types/expense";
 
 interface ExpenseTableColumnsProps {
-  onEdit: (expense: ExpenseWithDuplicate) => void;
-  onDelete: (expense: ExpenseWithDuplicate) => void;
+  onEdit: (expense: DisplayExpenseWithDuplicate) => void;
+  onDelete: (expense: DisplayExpenseWithDuplicate) => void;
 }
 
 export const createExpenseColumns = ({
   onEdit,
   onDelete,
-}: ExpenseTableColumnsProps): ColumnDef<ExpenseWithDuplicate>[] => [
+}: ExpenseTableColumnsProps): ColumnDef<DisplayExpenseWithDuplicate>[] => [
   {
     accessorKey: "date",
     header: ({ column }) => (

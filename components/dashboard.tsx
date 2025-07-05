@@ -1,6 +1,7 @@
 "use client";
+
 import { Search, Upload, Zap } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,191 +11,80 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { createClient } from "@/lib/supabase/client";
-import type { DisplayExpense } from "@/lib/types/expense";
-import {
-  transformDbRowsToDisplay,
-  transformDbRowToDisplay,
-} from "@/lib/utils/expense-transformers";
-import { markDuplicates } from "@/lib/utils/duplicate-detector";
+import { useExpenses } from "@/hooks/use-expenses";
+import type { DisplayExpenseWithDuplicate } from "@/lib/types/expense";
+import { DeleteExpenseDialog } from "./delete-expense-dialog";
+import { EditExpenseDialog } from "./edit-expense-dialog";
 import { ExpensesTable } from "./expenses-table";
 import { UploadDialog } from "./upload-dialog";
 
-
 export function Dashboard() {
   const [isUploadOpen, setUploadOpen] = useState(false);
-  const [expenses, setExpenses] = useState<Array<DisplayExpense & { isDuplicate: boolean }>>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [editingExpense, setEditingExpense] = useState<DisplayExpense | null>(
-    null
-  );
-  const [deletingExpense, setDeletingExpense] = useState<DisplayExpense | null>(
-    null
-  );
   const [fastDeleteEnabled, setFastDeleteEnabled] = useState(false);
-  const [editForm, setEditForm] = useState({
-    description: "",
-    merchant: "",
-    category: "",
-    amount: "",
-    originalAmount: "",
-    originalCurrency: "",
-    date: "",
-  });
+  const [editingExpense, setEditingExpense] =
+    useState<DisplayExpenseWithDuplicate | null>(null);
+  const [deletingExpense, setDeletingExpense] =
+    useState<DisplayExpenseWithDuplicate | null>(null);
 
-  useEffect(() => {
-    const supabase = createClient();
+  const { expenses, isLoading, error, updateExpense, deleteExpense } =
+    useExpenses();
 
-    // Fetch existing expenses first
-    const fetchExpenses = async () => {
-      const { data } = await supabase
-        .from("expenses")
-        .select("*")
-        .order("date", { ascending: false });
-
-      if (data) {
-        try {
-          const formattedExpenses = transformDbRowsToDisplay(data);
-          const expensesWithDuplicates = markDuplicates(formattedExpenses);
-          setExpenses(expensesWithDuplicates);
-        } catch (error) {
-          console.error("Failed to transform expenses:", error);
-        }
-      }
-    };
-
-    fetchExpenses();
-
-    // Set up realtime subscription for new expenses
-    const channel = supabase
-      .channel("realtime-expenses")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "expenses",
-        },
-        (payload) => {
-          try {
-            const formattedExpense = transformDbRowToDisplay(payload.new);
-            setExpenses((prevExpenses) => {
-              const newExpenses = [formattedExpense, ...prevExpenses.map(e => ({ ...e, isDuplicate: false }))]; // Reset duplicate flags
-              return markDuplicates(newExpenses);
-            });
-          } catch (error) {
-            console.error("Failed to transform new expense:", error);
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  const categories = [
-    "Food & Drink",
-    "Transport",
-    "Shopping",
-    "Groceries",
-    "Entertainment",
-    "Bills",
-    "Health",
-    "Travel",
-    "Other",
-  ];
-
-  const currencies = ["SGD", "USD", "EUR", "GBP", "JPY", "IDR", "MYR", "THB"];
-
-  const handleEdit = (expense: DisplayExpense & { isDuplicate: boolean }) => {
+  const handleEdit = (expense: DisplayExpenseWithDuplicate) => {
     setEditingExpense(expense);
-    setEditForm({
-      description: expense.description,
-      merchant: expense.merchant,
-      category: expense.category,
-      amount: expense.amount.toString(),
-      originalAmount: expense.originalAmount.toString(),
-      originalCurrency: expense.originalCurrency,
-      date: expense.date,
-    });
   };
 
-  const handleSaveEdit = () => {
-    if (!editingExpense) return;
-
-    const updatedExpense = {
-      ...editingExpense,
-      description: editForm.description,
-      merchant: editForm.merchant,
-      category: editForm.category,
-      amount: Number.parseFloat(editForm.amount),
-      originalAmount: Number.parseFloat(editForm.originalAmount),
-      originalCurrency: editForm.originalCurrency,
-      date: editForm.date,
-    };
-
-    setExpenses(
-      expenses.map((exp) =>
-        exp.id === editingExpense.id ? updatedExpense : exp
-      )
-    );
-    setEditingExpense(null);
-  };
-
-  const handleDelete = (expense: DisplayExpense & { isDuplicate: boolean }) => {
+  const handleDelete = async (expense: DisplayExpenseWithDuplicate) => {
     if (fastDeleteEnabled) {
-      // Fast delete - skip confirmation dialog
-      setDeletingExpense(expense);
-      confirmDelete(expense);
+      // Fast delete - no confirmation dialog
+      await deleteExpense(expense.id);
     } else {
       // Normal delete - show confirmation dialog
       setDeletingExpense(expense);
     }
   };
 
-  const confirmDelete = async (expenseToDelete?: DisplayExpense & { isDuplicate: boolean }) => {
-    const expense = expenseToDelete || deletingExpense;
-    if (!expense) return;
+  const handleUpdateExpense = async (data: {
+    description: string;
+    merchant: string;
+    category: string;
+    amount: number;
+    originalAmount: number;
+    originalCurrency: string;
+    date: string;
+  }) => {
+    if (!editingExpense) return { error: "No expense selected" };
 
-    try {
-      const supabase = createClient();
-      const { error } = await supabase
-        .from("expenses")
-        .delete()
-        .eq("id", expense.id);
-
-      if (error) {
-        console.error("Failed to delete expense:", error);
-        return;
-      }
-
-      // Only remove from local state if database deletion succeeded
-      setExpenses(expenses.filter((exp) => exp.id !== expense.id));
-      setDeletingExpense(null);
-    } catch (error) {
-      console.error("Error deleting expense:", error);
+    const result = await updateExpense(editingExpense.id, data);
+    if (result.success) {
+      setEditingExpense(null);
     }
+    return result;
   };
+
+  const handleDeleteExpense = async (expenseId: string) => {
+    const result = await deleteExpense(expenseId);
+    if (result.success) {
+      setDeletingExpense(null);
+    }
+    return result;
+  };
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-red-600">Error loading expenses: {error}</p>
+          <Button onClick={() => window.location.reload()} className="mt-4">
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col sm:gap-4 sm:py-4">
@@ -233,7 +123,9 @@ export function Dashboard() {
           </Button>
         </div>
       </header>
+
       <UploadDialog isOpen={isUploadOpen} onOpenChange={setUploadOpen} />
+
       <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
         <Card>
           <CardHeader>
@@ -243,12 +135,23 @@ export function Dashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ExpensesTable
-              expenses={expenses}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              globalFilter={searchQuery}
-            />
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    Loading expenses...
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <ExpensesTable
+                expenses={expenses}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                globalFilter={searchQuery}
+              />
+            )}
           </CardContent>
           <CardFooter>
             <div className="text-xs text-muted-foreground">
@@ -261,180 +164,22 @@ export function Dashboard() {
       </main>
 
       {/* Edit Dialog */}
-      <Dialog
-        open={!!editingExpense}
-        onOpenChange={() => setEditingExpense(null)}
-      >
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Edit Expense</DialogTitle>
-            <DialogDescription>
-              Make changes to your expense here. Click save when you're done.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="date" className="text-right">
-                Date
-              </Label>
-              <Input
-                id="date"
-                type="date"
-                value={editForm.date}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, date: e.target.value })
-                }
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="merchant" className="text-right">
-                Merchant
-              </Label>
-              <Input
-                id="merchant"
-                value={editForm.merchant}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, merchant: e.target.value })
-                }
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="category" className="text-right">
-                Category
-              </Label>
-              <Select
-                value={editForm.category}
-                onValueChange={(value) =>
-                  setEditForm({ ...editForm, category: value })
-                }
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="amount" className="text-right">
-                Amount (SGD)
-              </Label>
-              <Input
-                id="amount"
-                type="number"
-                step="0.01"
-                value={editForm.amount}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, amount: e.target.value })
-                }
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="originalAmount" className="text-right">
-                Original Amount
-              </Label>
-              <Input
-                id="originalAmount"
-                type="number"
-                step="0.01"
-                value={editForm.originalAmount}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, originalAmount: e.target.value })
-                }
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="originalCurrency" className="text-right">
-                Original Currency
-              </Label>
-              <Select
-                value={editForm.originalCurrency}
-                onValueChange={(value) =>
-                  setEditForm({ ...editForm, originalCurrency: value })
-                }
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select currency" />
-                </SelectTrigger>
-                <SelectContent>
-                  {currencies.map((currency) => (
-                    <SelectItem key={currency} value={currency}>
-                      {currency}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="description" className="text-right">
-                Description
-              </Label>
-              <Input
-                id="description"
-                value={editForm.description}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, description: e.target.value })
-                }
-                className="col-span-3"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingExpense(null)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSaveEdit}>Save changes</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {editingExpense && (
+        <EditExpenseDialog
+          expense={editingExpense}
+          onSave={handleUpdateExpense}
+          onClose={() => setEditingExpense(null)}
+        />
+      )}
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog
-        open={!!deletingExpense && !fastDeleteEnabled}
-        onOpenChange={() => setDeletingExpense(null)}
-      >
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Delete Expense</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this expense? This action cannot
-              be undone.
-            </DialogDescription>
-          </DialogHeader>
-          {deletingExpense && (
-            <div className="py-4">
-              <div className="rounded-lg border p-4 bg-muted/50">
-                <div className="font-medium">{deletingExpense.description}</div>
-                <div className="text-sm text-muted-foreground">
-                  {deletingExpense.category} •{" "}
-                  {deletingExpense.amount.toLocaleString("en-US", {
-                    style: "currency",
-                    currency: "SGD",
-                  })}{" "}
-                  • {deletingExpense.date}
-                </div>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeletingExpense(null)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={confirmDelete}>
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Delete Dialog */}
+      {deletingExpense && !fastDeleteEnabled && (
+        <DeleteExpenseDialog
+          expense={deletingExpense}
+          onDelete={handleDeleteExpense}
+          onClose={() => setDeletingExpense(null)}
+        />
+      )}
     </div>
   );
 }

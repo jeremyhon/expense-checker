@@ -1,112 +1,185 @@
 import { z } from "zod";
 
-/**
- * Expense categories available in the system
- */
-const EXPENSE_CATEGORIES = [
-  "Food & Drink",
-  "Transport",
+export const EXPENSE_CATEGORIES = [
+  "Food & Dining",
+  "Transportation",
   "Shopping",
-  "Groceries",
   "Entertainment",
-  "Bills",
-  "Health",
+  "Bills & Utilities",
+  "Healthcare",
+  "Education",
   "Travel",
   "Other",
 ] as const;
 
-export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
+export const CURRENCIES = [
+  "SGD",
+  "USD",
+  "EUR",
+  "GBP",
+  "AUD",
+  "JPY",
+  "CNY",
+  "HKD",
+  "MYR",
+  "THB",
+  "IDR",
+  "PHP",
+  "VND",
+  "KRW",
+  "TWD",
+  "INR",
+] as const;
 
-/**
- * Expense data as provided by AI extraction (may have nullable SGD conversion)
- */
-export const aiExpenseSchema = z.object({
-  date: z
-    .string()
-    .describe("The date of the transaction in YYYY-MM-DD format."),
-  merchant: z.string().describe("The merchant or payee name."),
-  description: z.string().describe("A brief description of the transaction."),
-  amount_sgd: z
-    .number()
-    .nullable()
-    .describe("The transaction amount in SGD if available on statement."),
-  original_amount: z.number().describe("The original transaction amount."),
-  original_currency: z
-    .string()
-    .length(3)
-    .describe("The original 3-letter currency code (e.g., SGD, USD)."),
-  category: z.enum(EXPENSE_CATEGORIES).describe("The category of the expense."),
-});
+export type Currency = (typeof CURRENCIES)[number];
 
-export type AIExpenseInput = z.infer<typeof aiExpenseSchema>;
-
-/**
- * Database query result (fields come as numbers from Supabase)
- */
+// Zod schemas for validation
 export const databaseExpenseRowSchema = z.object({
   id: z.string().uuid(),
-  statement_id: z.string().uuid(),
   user_id: z.string().uuid(),
-  created_at: z.string(), // Supabase returns TIMESTAMPTZ as ISO string
-  date: z.string().date(),
-  description: z.string().min(1),
-  merchant: z.string().nullable(),
-  category: z.enum(EXPENSE_CATEGORIES),
-  amount_sgd: z.number(), // Supabase returns NUMERIC as number
-  original_amount: z.number().nullable(), // Supabase returns NUMERIC as number
+  statement_id: z.string().uuid(),
+  created_at: z.string(),
+  date: z.string(),
+  description: z.string(),
+  amount_sgd: z.number(),
+  currency: z.string().default("SGD"),
+  foreign_amount: z.number().nullable(),
+  foreign_currency: z.string().nullable(),
+  original_amount: z.number().nullable(),
   original_currency: z.string().nullable(),
-  currency: z.string().length(3),
-  line_hash: z.string().min(1),
+  merchant: z.string().nullable(),
+  category: z.string(),
+  line_hash: z.string(),
 });
 
-export type DatabaseExpenseRow = z.infer<typeof databaseExpenseRowSchema>;
-
-/**
- * Frontend-friendly expense interface with parsed numbers and camelCase
- */
 export const displayExpenseSchema = z.object({
   id: z.string().uuid(),
-  date: z.string().date(),
-  description: z.string().min(1),
-  merchant: z.string().min(1),
-  category: z.enum(EXPENSE_CATEGORIES),
-  amount: z.number().positive(), // SGD amount
-  originalAmount: z.number().positive(),
-  originalCurrency: z.string().length(3),
-  currency: z.string().length(3),
-  createdAt: z.string(), // ISO string timestamp
+  date: z.string(),
+  description: z.string(),
+  merchant: z.string(),
+  category: z.string(),
+  amount: z.number(),
+  originalAmount: z.number(),
+  originalCurrency: z.string(),
+  currency: z.string(),
+  createdAt: z.string(),
 });
 
-export type DisplayExpense = z.infer<typeof displayExpenseSchema>;
+export const aiExpenseSchema = z.object({
+  date: z.string(),
+  description: z.string(),
+  merchant: z.string(),
+  category: z.string(),
+  original_amount: z.number(),
+  original_currency: z.string(),
+  amount_sgd: z.number().optional(),
+});
 
-/**
- * Expense data for database insertion
- */
 export const expenseInsertDataSchema = z.object({
   statement_id: z.string().uuid(),
   user_id: z.string().uuid(),
-  date: z.string().date(),
-  description: z.string().min(1),
-  merchant: z.string().min(1),
-  amount_sgd: z.number().positive(),
-  original_amount: z.number().positive(),
-  original_currency: z.string().length(3),
-  currency: z.string().length(3),
-  category: z.enum(EXPENSE_CATEGORIES),
-  line_hash: z.string().min(1),
+  date: z.string(),
+  description: z.string(),
+  merchant: z.string().optional(),
+  amount_sgd: z.number(),
+  original_amount: z.number(),
+  original_currency: z.string(),
+  currency: z.string(),
+  category: z.string(),
+  line_hash: z.string(),
 });
 
-export type ExpenseInsertData = z.infer<typeof expenseInsertDataSchema>;
-
-/**
- * Result of uploading a statement
- */
-export interface UploadResult {
-  success: boolean;
-  message: string;
+// Display format (camelCase for frontend)
+export interface DisplayExpense {
+  id: string;
+  date: string;
+  description: string;
+  merchant: string;
+  category: string;
+  amount: number;
+  originalAmount: number;
+  originalCurrency: string;
+  currency: string;
+  createdAt: string;
 }
 
-/**
- * Statement processing status
- */
+// Display expense with duplicate flag for table
+export interface DisplayExpenseWithDuplicate extends DisplayExpense {
+  isDuplicate: boolean;
+}
+
+// AI input type
+export interface AIExpenseInput {
+  date: string;
+  description: string;
+  merchant: string;
+  category: string;
+  original_amount: number;
+  original_currency: string;
+  amount_sgd?: number;
+}
+
+// Database insert type
+export interface ExpenseInsertData {
+  statement_id: string;
+  user_id: string;
+  date: string;
+  description: string;
+  merchant?: string;
+  amount_sgd: number;
+  original_amount: number;
+  original_currency: string;
+  currency: string;
+  category: string;
+  line_hash: string;
+}
+
+// Statement status for upload functionality
 export type StatementStatus = "processing" | "completed" | "failed";
+
+// Upload result type
+export interface UploadResult {
+  success: boolean;
+  error?: string;
+  message?: string;
+  statementId?: string;
+}
+
+// Form data types
+export interface ExpenseFormData {
+  description: string;
+  merchant: string;
+  category: string;
+  amount: string;
+  originalAmount: string;
+  originalCurrency: string;
+  date: string;
+}
+
+export interface ExpenseUpdateData {
+  description: string;
+  merchant: string;
+  category: string;
+  amount: number;
+  originalAmount: number;
+  originalCurrency: string;
+  date: string;
+}
+
+// Realtime payload schemas for Supabase events
+export const realtimeInsertPayloadSchema = databaseExpenseRowSchema;
+export const realtimeUpdatePayloadSchema = databaseExpenseRowSchema
+  .partial()
+  .extend({
+    id: z.string().uuid(), // ID is always present in updates
+  });
+export const realtimeDeletePayloadSchema = z.object({
+  id: z.string().uuid(),
+  // May include other fields that Supabase sends in DELETE events
+});
+
+// Type guards and helpers
+export type DatabaseExpenseRow = z.infer<typeof databaseExpenseRowSchema>;
+export type RealtimeInsertPayload = z.infer<typeof realtimeInsertPayloadSchema>;
+export type RealtimeUpdatePayload = z.infer<typeof realtimeUpdatePayloadSchema>;
+export type RealtimeDeletePayload = z.infer<typeof realtimeDeletePayloadSchema>;
