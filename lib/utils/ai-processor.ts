@@ -7,29 +7,48 @@ import { type ExpenseInput, expenseSchema } from "@/lib/types/expense";
  */
 const EXPENSE_EXTRACTION_PROMPT = `You are a financial data extraction expert. Analyze this bank statement PDF and extract ALL transaction expenses (outgoing payments, purchases, debits).
 
-IMPORTANT RULES:
-1. Extract ONLY expenses/debits (money going out), NOT deposits/credits (money coming in)
-2. Skip internal transfers between own accounts
-3. For Singapore transactions, categorize appropriately 
-4. For non-Singapore transactions, categorize as "Travel"
-5. Use the date format YYYY-MM-DD
-6. Amount should be positive numbers only
-7. Merchant names should be cleaned up (remove extra codes/numbers where possible)
-8. Extract BOTH original amount and SGD amount if both are shown on the statement
+WHAT TO INCLUDE:
+- Purchases from merchants, stores, restaurants
+- Bill payments (utilities, phone, insurance)
+- ATM withdrawals and bank fees
+- Subscription services
+- Online purchases and payments
+- Foreign currency transactions
 
-Available categories: Food & Drink, Transport, Shopping, Groceries, Entertainment, Bills, Health, Travel, Other
+WHAT TO EXCLUDE:
+- Deposits, credits, salary payments (money coming in)
+- Transfers between accounts (containing: "Transfer", "TRANSFER", "Tfr", "TFR", "To:", "From:", "Savings", "Investment", "Own Account")
+- Interest earned or dividends
+- Refunds or reversals (unless they represent a net expense)
+- Duplicate transactions or pending transactions
 
-Return expenses with:
-- date: Transaction date in YYYY-MM-DD format
-- merchant: Clean merchant/payee name
-- description: Brief transaction description
-- amount_sgd: SGD amount if shown on statement, null if not available
-- original_amount: Original transaction amount
-- original_currency: Original 3-letter currency code (SGD, USD, etc.)
-- category: One of the available categories above
+EXTRACTION RULES:
+1. Date: Use YYYY-MM-DD format, extract the posted/cleared date (not pending)
+2. Amount: Always positive numbers, use the debited amount
+3. Currency: For SGD transactions, set both original_amount and amount_sgd to the same value
+4. For foreign transactions: Extract both amounts only if both are clearly shown on the statement
+5. Merchant: Clean up names by removing unnecessary codes, reference numbers, and extra whitespace
+6. Description: Keep concise but informative (e.g., "Coffee purchase" not "VISA PURCHASE 123456")
 
-For SGD transactions, amount_sgd and original_amount should be the same, and original_currency should be "SGD".
-For foreign currency transactions, extract both amounts only if both are clearly shown on the statement.`;
+CATEGORIZATION RULES:
+- Food & Drink: Restaurants, cafes, food delivery, groceries for meals
+- Transport: Public transport, taxis, ride-sharing, fuel, parking
+- Shopping: Retail purchases, clothing, electronics, general merchandise
+- Groceries: Supermarkets, grocery stores, household supplies
+- Entertainment: Movies, games, streaming, events, hobbies
+- Bills: Utilities, phone, internet, insurance, subscriptions
+- Health: Medical, dental, pharmacy, fitness, wellness
+- Travel: Foreign transactions, hotels, flights, travel-related expenses
+- Other: Miscellaneous expenses that don't fit other categories
+
+QUALITY CHECKS:
+- Verify each transaction is a genuine expense (money leaving the account)
+- Ensure dates are valid and properly formatted
+- Check that amounts are reasonable and positive
+- Confirm currency codes are valid 3-letter codes (SGD, USD, EUR, etc.)
+- Validate categories match the available options exactly
+
+Available categories: Food & Drink, Transport, Shopping, Groceries, Entertainment, Bills, Health, Travel, Other`;
 
 /**
  * Process PDF buffer and extract expenses using AI
