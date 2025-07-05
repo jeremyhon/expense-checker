@@ -41,7 +41,7 @@ export const aiExpenseSchema = z.object({
 export type AIExpenseInput = z.infer<typeof aiExpenseSchema>;
 
 /**
- * Database query result (fields come as strings from Supabase)
+ * Database query result (fields come as numbers from Supabase)
  */
 export const databaseExpenseRowSchema = z.object({
   id: z.string().uuid(),
@@ -52,8 +52,8 @@ export const databaseExpenseRowSchema = z.object({
   description: z.string().min(1),
   merchant: z.string().nullable(),
   category: z.enum(EXPENSE_CATEGORIES),
-  amount_sgd: z.string(), // Supabase returns NUMERIC as string
-  original_amount: z.string().nullable(), // Supabase returns NUMERIC as string
+  amount_sgd: z.number(), // Supabase returns NUMERIC as number
+  original_amount: z.number().nullable(), // Supabase returns NUMERIC as number
   original_currency: z.string().nullable(),
   currency: z.string().length(3),
   line_hash: z.string().min(1),

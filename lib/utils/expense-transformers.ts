@@ -24,10 +24,8 @@ export function transformDbRowToDisplay(row: unknown): DisplayExpense {
     description: validatedRow.description,
     merchant: validatedRow.merchant || "",
     category: validatedRow.category,
-    amount: Number.parseFloat(validatedRow.amount_sgd),
-    originalAmount: Number.parseFloat(
-      validatedRow.original_amount || validatedRow.amount_sgd
-    ),
+    amount: validatedRow.amount_sgd,
+    originalAmount: validatedRow.original_amount || validatedRow.amount_sgd,
     originalCurrency: validatedRow.original_currency || validatedRow.currency,
     currency: "SGD",
   };
