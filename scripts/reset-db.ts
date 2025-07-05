@@ -4,10 +4,20 @@ import { del, list } from "@vercel/blob";
 async function resetDatabase() {
   console.log("🗑️  Starting database reset...");
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl) {
+    console.error("❌ NEXT_PUBLIC_SUPABASE_URL environment variable is required");
+    process.exit(1);
+  }
+
+  if (!serviceRoleKey) {
+    console.error("❌ SUPABASE_SERVICE_ROLE_KEY environment variable is required");
+    process.exit(1);
+  }
+
+  const supabase = createClient(supabaseUrl, serviceRoleKey);
 
   try {
     // Delete all expenses
