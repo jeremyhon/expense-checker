@@ -1,6 +1,6 @@
 import { google } from "@ai-sdk/google";
 import { streamObject } from "ai";
-import { type ExpenseInput, expenseSchema } from "@/lib/types/expense";
+import { type AIExpenseInput, aiExpenseSchema } from "@/lib/types/expense";
 
 /**
  * AI prompt for expense extraction from PDF statements
@@ -57,13 +57,13 @@ Available categories: Food & Drink, Transport, Shopping, Groceries, Entertainmen
  */
 export async function* extractExpensesFromPdf(
   fileBuffer: Buffer
-): AsyncGenerator<ExpenseInput, void, unknown> {
+): AsyncGenerator<AIExpenseInput, void, unknown> {
   const base64Pdf = fileBuffer.toString("base64");
 
   const { elementStream } = streamObject({
     model: google("gemini-2.5-flash"),
     output: "array",
-    schema: expenseSchema,
+    schema: aiExpenseSchema,
     messages: [
       {
         role: "user",

@@ -4,28 +4,17 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-
-export interface Expense {
-  id: string;
-  description: string;
-  merchant: string;
-  category: string;
-  amount: number;
-  date: string;
-  currency: string;
-  originalAmount: number;
-  originalCurrency: string;
-}
+import type { DisplayExpense } from "@/lib/types/expense";
 
 interface ExpenseTableColumnsProps {
-  onEdit: (expense: Expense) => void;
-  onDelete: (expense: Expense) => void;
+  onEdit: (expense: DisplayExpense) => void;
+  onDelete: (expense: DisplayExpense) => void;
 }
 
 export const createExpenseColumns = ({
   onEdit,
   onDelete,
-}: ExpenseTableColumnsProps): ColumnDef<Expense>[] => [
+}: ExpenseTableColumnsProps): ColumnDef<DisplayExpense>[] => [
   {
     accessorKey: "date",
     header: ({ column }) => (

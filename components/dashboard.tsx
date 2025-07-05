@@ -28,9 +28,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { createClient } from "@/lib/supabase/client";
-import type { ExpenseDatabaseRow } from "@/lib/types/expense";
+import type { DisplayExpense } from "@/lib/types/expense";
+import {
+  transformDbRowsToDisplay,
+  transformDbRowToDisplay,
+} from "@/lib/utils/expense-transformers";
 import { ExpensesTable } from "./expenses-table";
-import type { Expense } from "./expenses-table-columns";
 import { UploadDialog } from "./upload-dialog";
 
 const mockExpenses = [
@@ -115,10 +118,14 @@ const mockExpenses = [
 
 export function Dashboard() {
   const [isUploadOpen, setUploadOpen] = useState(false);
-  const [expenses, setExpenses] = useState<Expense[]>(mockExpenses);
+  const [expenses, setExpenses] = useState<DisplayExpense[]>(mockExpenses);
   const [searchQuery, setSearchQuery] = useState("");
-  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
-  const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
+  const [editingExpense, setEditingExpense] = useState<DisplayExpense | null>(
+    null
+  );
+  const [deletingExpense, setDeletingExpense] = useState<DisplayExpense | null>(
+    null
+  );
   const [editForm, setEditForm] = useState({
     description: "",
     merchant: "",
@@ -140,20 +147,12 @@ export function Dashboard() {
         .order("date", { ascending: false });
 
       if (data) {
-        const formattedExpenses = data.map((expense) => ({
-          id: expense.id,
-          description: expense.description,
-          merchant: expense.merchant || "",
-          category: expense.category,
-          amount: Number.parseFloat(expense.amount_sgd),
-          date: expense.date,
-          currency: "SGD",
-          originalAmount: Number.parseFloat(
-            expense.original_amount || expense.amount_sgd
-          ),
-          originalCurrency: expense.original_currency || expense.currency,
-        }));
-        setExpenses(formattedExpenses);
+        try {
+          const formattedExpenses = transformDbRowsToDisplay(data);
+          setExpenses(formattedExpenses);
+        } catch (error) {
+          console.error("Failed to transform expenses:", error);
+        }
       }
     };
 
@@ -170,22 +169,12 @@ export function Dashboard() {
           table: "expenses",
         },
         (payload) => {
-          const newExpense = payload.new as ExpenseDatabaseRow;
-          const formattedExpense: Expense = {
-            id: newExpense.id,
-            description: newExpense.description,
-            merchant: newExpense.merchant || "",
-            category: newExpense.category,
-            amount: Number.parseFloat(newExpense.amount_sgd),
-            date: newExpense.date,
-            currency: "SGD",
-            originalAmount: Number.parseFloat(
-              newExpense.original_amount || newExpense.amount_sgd
-            ),
-            originalCurrency:
-              newExpense.original_currency || newExpense.currency,
-          };
-          setExpenses((prevExpenses) => [formattedExpense, ...prevExpenses]);
+          try {
+            const formattedExpense = transformDbRowToDisplay(payload.new);
+            setExpenses((prevExpenses) => [formattedExpense, ...prevExpenses]);
+          } catch (error) {
+            console.error("Failed to transform new expense:", error);
+          }
         }
       )
       .subscribe();
@@ -196,19 +185,20 @@ export function Dashboard() {
   }, []);
 
   const categories = [
-    "Food & Dining",
-    "Transportation",
+    "Food & Drink",
+    "Transport",
     "Shopping",
+    "Groceries",
     "Entertainment",
-    "Bills & Utilities",
-    "Healthcare",
+    "Bills",
+    "Health",
     "Travel",
     "Other",
   ];
 
   const currencies = ["SGD", "USD", "EUR", "GBP", "JPY", "IDR", "MYR", "THB"];
 
-  const handleEdit = (expense: Expense) => {
+  const handleEdit = (expense: DisplayExpense) => {
     setEditingExpense(expense);
     setEditForm({
       description: expense.description,
@@ -243,7 +233,7 @@ export function Dashboard() {
     setEditingExpense(null);
   };
 
-  const handleDelete = (expense: Expense) => {
+  const handleDelete = (expense: DisplayExpense) => {
     setDeletingExpense(expense);
   };
 

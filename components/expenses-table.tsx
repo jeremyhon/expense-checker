@@ -18,12 +18,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { createExpenseColumns, type Expense } from "./expenses-table-columns";
+import type { DisplayExpense } from "@/lib/types/expense";
+import { createExpenseColumns } from "./expenses-table-columns";
 
 interface ExpensesTableProps {
-  expenses: Expense[];
-  onEdit: (expense: Expense) => void;
-  onDelete: (expense: Expense) => void;
+  expenses: DisplayExpense[];
+  onEdit: (expense: DisplayExpense) => void;
+  onDelete: (expense: DisplayExpense) => void;
   globalFilter: string;
 }
 

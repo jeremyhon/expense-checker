@@ -8,12 +8,16 @@ async function resetDatabase() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl) {
-    console.error("❌ NEXT_PUBLIC_SUPABASE_URL environment variable is required");
+    console.error(
+      "❌ NEXT_PUBLIC_SUPABASE_URL environment variable is required"
+    );
     process.exit(1);
   }
 
   if (!serviceRoleKey) {
-    console.error("❌ SUPABASE_SERVICE_ROLE_KEY environment variable is required");
+    console.error(
+      "❌ SUPABASE_SERVICE_ROLE_KEY environment variable is required"
+    );
     process.exit(1);
   }
 

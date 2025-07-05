@@ -2,12 +2,16 @@ import crypto from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import type {
-  ExpenseInput,
-  ExpenseRecord,
+  AIExpenseInput,
+  ExpenseInsertData,
   StatementStatus,
 } from "@/lib/types/expense";
 import { extractExpensesFromPdf } from "@/lib/utils/ai-processor";
 import { convertToSGD } from "@/lib/utils/currency";
+import {
+  transformAIInputToInsert,
+  validateExpenseInsert,
+} from "@/lib/utils/expense-transformers";
 
 /**
  * Create a hash for expense deduplication
@@ -24,13 +28,13 @@ function createExpenseHash(
 }
 
 /**
- * Convert expense input to database record
+ * Convert expense input to database record with validation
  */
 async function convertExpenseToRecord(
-  expense: ExpenseInput,
+  expense: AIExpenseInput,
   statementId: string,
   userId: string
-): Promise<ExpenseRecord> {
+): Promise<ExpenseInsertData> {
   const currencyResult = await convertToSGD(
     expense.original_amount,
     expense.original_currency,
@@ -44,31 +48,29 @@ async function convertExpenseToRecord(
     amountSgd
   );
 
-  return {
-    statement_id: statementId,
-    user_id: userId,
-    date: expense.date,
-    description: expense.description,
-    merchant: expense.merchant,
-    amount_sgd: amountSgd,
-    original_amount: expense.original_amount,
-    original_currency: expense.original_currency,
-    currency: expense.original_currency,
-    category: expense.original_currency !== "SGD" ? "Travel" : expense.category,
-    line_hash: lineHash,
-  };
+  // Use transformer with validation
+  return transformAIInputToInsert(
+    expense,
+    statementId,
+    userId,
+    amountSgd,
+    lineHash
+  );
 }
 
 /**
- * Insert expense record into database
+ * Insert expense record into database with validation
  */
 async function insertExpenseRecord(
   supabase: SupabaseClient,
-  expenseRecord: ExpenseRecord
+  expenseRecord: ExpenseInsertData
 ): Promise<boolean> {
+  // Validate before inserting
+  const validatedRecord = validateExpenseInsert(expenseRecord);
+
   const { error } = await supabase
     .from("expenses")
-    .insert([expenseRecord])
+    .insert([validatedRecord])
     .select();
 
   if (error && error.code !== "23505") {
