@@ -21,6 +21,7 @@ import { DateRangePickerWithPresets } from "./date-range-picker-with-presets";
 import { DeleteExpenseDialog } from "./delete-expense-dialog";
 import { EditExpenseDialog } from "./edit-expense-dialog";
 import { ExpenseCategoryChart } from "./expense-category-chart";
+import { ExpenseHeadlineNumbers } from "./expense-headline-numbers";
 import { ExpensesTable } from "./expenses-table";
 import { UploadDialog } from "./upload-dialog";
 
@@ -137,8 +138,9 @@ export function Dashboard() {
 
       <UploadDialog isOpen={isUploadOpen} onOpenChange={setUploadOpen} />
 
-      <div className="px-4 sm:px-6">
-        <ExpenseCategoryChart />
+      <div className="px-4 sm:px-6 space-y-4">
+        <ExpenseHeadlineNumbers dateRange={dateRange} />
+        <ExpenseCategoryChart dateRange={dateRange} />
       </div>
 
       <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">

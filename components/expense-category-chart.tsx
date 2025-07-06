@@ -1,6 +1,8 @@
 "use client";
 
+import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import type { DateRange } from "react-day-picker";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { toast } from "sonner";
 import { getMonthlyExpensesByCategory } from "@/app/actions/expense";
@@ -32,7 +34,12 @@ const CATEGORY_COLORS: Record<string, string> = {
   Total: "#000000",
 };
 
-export function ExpenseCategoryChart() {
+interface ExpenseCategoryChartProps {
+  dateRange?: DateRange;
+}
+
+export function ExpenseCategoryChart({ dateRange }: ExpenseCategoryChartProps) {
+  const { theme, systemTheme } = useTheme();
   const [chartData, setChartData] = useState<
     Array<{ month: string; [key: string]: string | number }>
   >([]);
@@ -45,7 +52,16 @@ export function ExpenseCategoryChart() {
   useEffect(() => {
     const fetchChartData = async () => {
       try {
-        const result = await getMonthlyExpensesByCategory();
+        setIsLoading(true);
+        setError(null);
+
+        // Convert DateRange to the format expected by the server action
+        const dateRangeParam =
+          dateRange?.from && dateRange?.to
+            ? { from: dateRange.from, to: dateRange.to }
+            : undefined;
+
+        const result = await getMonthlyExpensesByCategory(dateRangeParam);
         if (result.error) {
           setError(result.error);
           toast.error("Failed to load chart data", {
@@ -64,7 +80,11 @@ export function ExpenseCategoryChart() {
     };
 
     fetchChartData();
-  }, []);
+  }, [dateRange]);
+
+  // Determine if we're in dark mode
+  const isDarkMode =
+    theme === "dark" || (theme === "system" && systemTheme === "dark");
 
   // Get all unique categories from the data
   const categories = Array.from(
@@ -75,11 +95,16 @@ export function ExpenseCategoryChart() {
     )
   );
 
-  // Build chart config based on available categories
+  // Build chart config based on available categories with dynamic Total color
   const chartConfig: ChartConfig = categories.reduce((acc, category) => {
     acc[category] = {
       label: category,
-      color: CATEGORY_COLORS[category] || "#808080",
+      color:
+        category === "Total"
+          ? isDarkMode
+            ? "#ffffff"
+            : "#000000"
+          : CATEGORY_COLORS[category] || "#808080",
     };
     return acc;
   }, {} as ChartConfig);
@@ -173,12 +198,19 @@ export function ExpenseCategoryChart() {
             />
             {categories.map((category) => {
               const isTotal = category === "Total";
+              const strokeColor =
+                category === "Total"
+                  ? isDarkMode
+                    ? "#ffffff"
+                    : "#000000"
+                  : CATEGORY_COLORS[category] || "#808080";
+
               return (
                 <Line
                   key={category}
                   type="monotone"
                   dataKey={category}
-                  stroke={CATEGORY_COLORS[category] || "#808080"}
+                  stroke={strokeColor}
                   strokeWidth={isTotal ? 3 : 2}
                   strokeDasharray="0"
                   hide={hiddenCategories.has(category)}
@@ -211,7 +243,11 @@ export function ExpenseCategoryChart() {
                   style={{
                     backgroundColor: hiddenCategories.has(category)
                       ? "transparent"
-                      : CATEGORY_COLORS[category] || "#808080",
+                      : category === "Total"
+                        ? isDarkMode
+                          ? "#ffffff"
+                          : "#000000"
+                        : CATEGORY_COLORS[category] || "#808080",
                     border: hiddenCategories.has(category)
                       ? "2px solid currentColor"
                       : "none",
