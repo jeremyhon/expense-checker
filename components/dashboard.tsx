@@ -20,6 +20,7 @@ import type { DisplayExpenseWithDuplicate } from "@/lib/types/expense";
 import { DateRangePickerWithPresets } from "./date-range-picker-with-presets";
 import { DeleteExpenseDialog } from "./delete-expense-dialog";
 import { EditExpenseDialog } from "./edit-expense-dialog";
+import { ExpenseCategoryChart } from "./expense-category-chart";
 import { ExpensesTable } from "./expenses-table";
 import { UploadDialog } from "./upload-dialog";
 
@@ -135,6 +136,10 @@ export function Dashboard() {
       </header>
 
       <UploadDialog isOpen={isUploadOpen} onOpenChange={setUploadOpen} />
+
+      <div className="px-4 sm:px-6">
+        <ExpenseCategoryChart />
+      </div>
 
       <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
         <Card>

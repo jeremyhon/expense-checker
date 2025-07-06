@@ -113,3 +113,78 @@ export async function deleteExpense(
 
   return { success: true };
 }
+
+export async function getMonthlyExpensesByCategory(): Promise<{
+  data?: Array<{ month: string; [category: string]: string | number }>;
+  error?: string;
+}> {
+  const supabase = await createClient();
+
+  // Check if user is authenticated
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Unauthorized" };
+  }
+
+  // Fetch all expenses for the user
+  const { data: expenses, error } = await supabase
+    .from("expenses")
+    .select("date, category, amount_sgd")
+    .eq("user_id", user.id)
+    .order("date", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching expenses for chart:", error);
+    return { error: error.message };
+  }
+
+  // Group expenses by month and category
+  const monthlyData = new Map<string, Map<string, number>>();
+  const allCategories = new Set<string>();
+
+  expenses?.forEach((expense) => {
+    const date = new Date(expense.date);
+    const monthKey = `${date.toLocaleString("default", {
+      month: "short",
+    })} ${date.getFullYear()}`;
+
+    allCategories.add(expense.category);
+
+    if (!monthlyData.has(monthKey)) {
+      monthlyData.set(monthKey, new Map());
+    }
+
+    const monthMap = monthlyData.get(monthKey);
+    if (monthMap) {
+      const currentAmount = monthMap.get(expense.category) || 0;
+      monthMap.set(
+        expense.category,
+        currentAmount + Number(expense.amount_sgd)
+      );
+    }
+  });
+
+  // Convert to array format for recharts, ensuring all categories have values for all months
+  const chartData = Array.from(monthlyData.entries()).map(
+    ([month, categories]) => {
+      const dataPoint: { month: string; [key: string]: string | number } = {
+        month,
+      };
+      let total = 0;
+      // Ensure all categories have a value (0 if no spending)
+      allCategories.forEach((category) => {
+        const amount = categories.get(category) || 0;
+        dataPoint[category] = amount;
+        total += amount;
+      });
+      // Add total line
+      dataPoint.Total = total;
+      return dataPoint;
+    }
+  );
+
+  return { data: chartData };
+}
