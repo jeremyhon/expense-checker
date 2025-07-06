@@ -10,21 +10,36 @@ import type {
  */
 export function transformDatabaseToDisplay(
   dbExpense: DatabaseExpenseRow,
+  isDuplicate?: boolean
+): DisplayExpenseWithDuplicate;
+export function transformDatabaseToDisplay(
+  dbExpense: Partial<DatabaseExpenseRow> & { id: string },
+  isDuplicate?: boolean
+): Partial<DisplayExpenseWithDuplicate> & { id: string };
+export function transformDatabaseToDisplay(
+  dbExpense: Partial<DatabaseExpenseRow> & { id: string },
   isDuplicate = false
-): DisplayExpenseWithDuplicate {
-  return {
+): Partial<DisplayExpenseWithDuplicate> & { id: string } {
+  const result: Partial<DisplayExpenseWithDuplicate> & { id: string } = {
     id: dbExpense.id,
-    date: dbExpense.date,
-    description: dbExpense.description,
-    merchant: dbExpense.merchant || "",
-    category: dbExpense.category,
-    amount: dbExpense.amount_sgd,
-    originalAmount: dbExpense.original_amount || dbExpense.amount_sgd,
-    originalCurrency: dbExpense.original_currency || dbExpense.currency,
-    currency: dbExpense.currency, // Use actual currency from database
-    createdAt: dbExpense.created_at,
     isDuplicate,
   };
+
+  if (dbExpense.date) result.date = dbExpense.date;
+  if (dbExpense.description) result.description = dbExpense.description;
+  if (dbExpense.merchant !== undefined) result.merchant = dbExpense.merchant || "";
+  if (dbExpense.category) result.category = dbExpense.category;
+  if (dbExpense.amount_sgd !== undefined) result.amount = dbExpense.amount_sgd;
+  if (dbExpense.original_amount !== undefined || dbExpense.amount_sgd !== undefined) {
+    result.originalAmount = dbExpense.original_amount || dbExpense.amount_sgd || 0;
+  }
+  if (dbExpense.original_currency || dbExpense.currency) {
+    result.originalCurrency = dbExpense.original_currency || dbExpense.currency || "";
+  }
+  if (dbExpense.currency) result.currency = dbExpense.currency;
+  if (dbExpense.created_at) result.createdAt = dbExpense.created_at;
+
+  return result;
 }
 
 /**
@@ -73,7 +88,7 @@ export function recalculateDuplicates(
  */
 export function updateExpenseInArray(
   expenses: DisplayExpenseWithDuplicate[],
-  updatedExpense: Partial<DisplayExpense> & { id: string }
+  updatedExpense: Partial<DisplayExpenseWithDuplicate> & { id: string }
 ): DisplayExpenseWithDuplicate[] {
   const updated = expenses.map((exp) =>
     exp.id === updatedExpense.id ? { ...exp, ...updatedExpense } : exp
