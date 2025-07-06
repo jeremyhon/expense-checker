@@ -27,14 +27,20 @@ export function transformDatabaseToDisplay(
 
   if (dbExpense.date) result.date = dbExpense.date;
   if (dbExpense.description) result.description = dbExpense.description;
-  if (dbExpense.merchant !== undefined) result.merchant = dbExpense.merchant || "";
+  if (dbExpense.merchant !== undefined)
+    result.merchant = dbExpense.merchant || "";
   if (dbExpense.category) result.category = dbExpense.category;
   if (dbExpense.amount_sgd !== undefined) result.amount = dbExpense.amount_sgd;
-  if (dbExpense.original_amount !== undefined || dbExpense.amount_sgd !== undefined) {
-    result.originalAmount = dbExpense.original_amount || dbExpense.amount_sgd || 0;
+  if (
+    dbExpense.original_amount !== undefined ||
+    dbExpense.amount_sgd !== undefined
+  ) {
+    result.originalAmount =
+      dbExpense.original_amount || dbExpense.amount_sgd || 0;
   }
   if (dbExpense.original_currency || dbExpense.currency) {
-    result.originalCurrency = dbExpense.original_currency || dbExpense.currency || "";
+    result.originalCurrency =
+      dbExpense.original_currency || dbExpense.currency || "";
   }
   if (dbExpense.currency) result.currency = dbExpense.currency;
   if (dbExpense.created_at) result.createdAt = dbExpense.created_at;

@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { formatNumber } from "@/lib/utils";
 
 interface ExpenseHeadlineNumbersProps {
   dateRange?: DateRange;
@@ -112,13 +113,13 @@ export function ExpenseHeadlineNumbers({
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       {/* Total Spending */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <Card className="max-w-[250px]">
+        <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium">Total Spending</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            ${data.totalSpending.toFixed(2)}
+            ${formatNumber(data.totalSpending)}
           </div>
           <p className="text-xs text-muted-foreground">
             Across {data.monthCount} month{data.monthCount !== 1 ? "s" : ""}
@@ -127,15 +128,13 @@ export function ExpenseHeadlineNumbers({
       </Card>
 
       {/* Average Monthly Spending */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">
-            Average Monthly Spending
-          </CardTitle>
+      <Card className="max-w-[250px]">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium">Average Monthly</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            ${data.averageSpending.toFixed(2)}
+            ${formatNumber(data.averageSpending)}
           </div>
           <p className="text-xs text-muted-foreground">Per month</p>
         </CardContent>
@@ -143,17 +142,17 @@ export function ExpenseHeadlineNumbers({
 
       {/* Top Category */}
       {sortedCategories.length > 0 && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <Card className="max-w-[250px]">
+          <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Top Category</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${sortedCategories[0][1].toFixed(2)}
+              ${formatNumber(sortedCategories[0][1])}
             </div>
             <p className="text-xs text-muted-foreground">
               {sortedCategories[0][0]} • $
-              {data.categoryAverages[sortedCategories[0][0]].toFixed(2)}/month
+              {formatNumber(data.categoryAverages[sortedCategories[0][0]])}/mo
             </p>
           </CardContent>
         </Card>
@@ -161,19 +160,19 @@ export function ExpenseHeadlineNumbers({
 
       {/* Second Top Category */}
       {sortedCategories.length > 1 && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <Card className="max-w-[250px]">
+          <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">
               Second Highest
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${sortedCategories[1][1].toFixed(2)}
+              ${formatNumber(sortedCategories[1][1])}
             </div>
             <p className="text-xs text-muted-foreground">
               {sortedCategories[1][0]} • $
-              {data.categoryAverages[sortedCategories[1][0]].toFixed(2)}/month
+              {formatNumber(data.categoryAverages[sortedCategories[1][0]])}/mo
             </p>
           </CardContent>
         </Card>
@@ -198,9 +197,11 @@ export function ExpenseHeadlineNumbers({
                   className="flex flex-col space-y-1 p-3 border rounded-lg"
                 >
                   <div className="font-medium text-sm">{category}</div>
-                  <div className="text-lg font-bold">${total.toFixed(2)}</div>
+                  <div className="text-lg font-bold">
+                    ${formatNumber(total)}
+                  </div>
                   <div className="text-xs text-muted-foreground">
-                    ${data.categoryAverages[category].toFixed(2)}/month
+                    ${formatNumber(data.categoryAverages[category])}/mo
                   </div>
                 </div>
               ))}
