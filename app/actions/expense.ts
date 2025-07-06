@@ -114,7 +114,10 @@ export async function deleteExpense(
   return { success: true };
 }
 
-export async function getMonthlyExpensesByCategory(): Promise<{
+export async function getMonthlyExpensesByCategory(dateRange?: {
+  from: Date;
+  to: Date;
+}): Promise<{
   data?: Array<{ month: string; [category: string]: string | number }>;
   error?: string;
 }> {
@@ -129,12 +132,22 @@ export async function getMonthlyExpensesByCategory(): Promise<{
     return { error: "Unauthorized" };
   }
 
-  // Fetch all expenses for the user
-  const { data: expenses, error } = await supabase
+  // Build query with optional date filtering
+  let query = supabase
     .from("expenses")
     .select("date, category, amount_sgd")
-    .eq("user_id", user.id)
-    .order("date", { ascending: true });
+    .eq("user_id", user.id);
+
+  // Add date filtering if dateRange is provided
+  if (dateRange?.from && dateRange?.to) {
+    query = query
+      .gte("date", dateRange.from.toISOString())
+      .lte("date", dateRange.to.toISOString());
+  }
+
+  const { data: expenses, error } = await query.order("date", {
+    ascending: true,
+  });
 
   if (error) {
     console.error("Error fetching expenses for chart:", error);
@@ -187,4 +200,105 @@ export async function getMonthlyExpensesByCategory(): Promise<{
   );
 
   return { data: chartData };
+}
+
+export async function getExpenseHeadlineNumbers(dateRange?: {
+  from: Date;
+  to: Date;
+}): Promise<{
+  data?: {
+    categoryTotals: Record<string, number>;
+    categoryAverages: Record<string, number>;
+    totalSpending: number;
+    averageSpending: number;
+    monthCount: number;
+  };
+  error?: string;
+}> {
+  const supabase = await createClient();
+
+  // Check if user is authenticated
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Unauthorized" };
+  }
+
+  // Build query with optional date filtering
+  let query = supabase
+    .from("expenses")
+    .select("date, category, amount_sgd")
+    .eq("user_id", user.id);
+
+  // Add date filtering if dateRange is provided
+  if (dateRange?.from && dateRange?.to) {
+    query = query
+      .gte("date", dateRange.from.toISOString())
+      .lte("date", dateRange.to.toISOString());
+  }
+
+  const { data: expenses, error } = await query.order("date", {
+    ascending: true,
+  });
+
+  if (error) {
+    console.error("Error fetching expenses for headline numbers:", error);
+    return { error: error.message };
+  }
+
+  if (!expenses || expenses.length === 0) {
+    return {
+      data: {
+        categoryTotals: {},
+        categoryAverages: {},
+        totalSpending: 0,
+        averageSpending: 0,
+        monthCount: 0,
+      },
+    };
+  }
+
+  // Calculate category totals
+  const categoryTotals: Record<string, number> = {};
+  let totalSpending = 0;
+  const monthsSet = new Set<string>();
+
+  expenses.forEach((expense) => {
+    const amount = Number(expense.amount_sgd);
+    const category = expense.category;
+    const date = new Date(expense.date);
+    const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+
+    // Track unique months for average calculation
+    monthsSet.add(monthKey);
+
+    // Add to category total
+    categoryTotals[category] = (categoryTotals[category] || 0) + amount;
+
+    // Add to overall total
+    totalSpending += amount;
+  });
+
+  const monthCount = monthsSet.size || 1; // Avoid division by zero
+
+  // Calculate category averages
+  const categoryAverages: Record<string, number> = {};
+  Object.keys(categoryTotals).forEach((category) => {
+    categoryAverages[category] = categoryTotals[category] / monthCount;
+  });
+
+  // Calculate overall average
+  const averageSpending = totalSpending / monthCount;
+
+  return {
+    data: {
+      categoryTotals,
+      categoryAverages,
+      totalSpending,
+      averageSpending,
+      monthCount,
+    },
+  };
 }
