@@ -15,7 +15,11 @@
     "typecheck": "tsc --noEmit",
     "ci": "bun run lint && bun run typecheck && bun run build",
     "reset": "bun run --tsconfig-override tsconfig.json scripts/reset-db.ts",
-    "db:push": "source .env.local && supabase db push -p $SUPABASE_DB_PW"
+    "db:push": "source .env.local && supabase db push -p $SUPABASE_DB_PW",
+    "tmux:dev": "tmux new-session -d -s dev-session 'bun run dev'",
+    "tmux:restart": "tmux send-keys -t dev-session C-c && tmux send-keys -t dev-session 'bun run dev' Enter",
+    "tmux:stop": "tmux kill-session -t dev-session",
+    "tmux:logs": "tmux capture-pane -t dev-session -p"
   },
   "dependencies": {
     "@ai-sdk/google": "^1.2.22",
