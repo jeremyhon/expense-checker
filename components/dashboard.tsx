@@ -2,6 +2,7 @@
 
 import { Search, Upload, Zap } from "lucide-react";
 import { useState } from "react";
+import type { DateRange } from "react-day-picker";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useExpenses } from "@/hooks/use-expenses";
 import type { DisplayExpenseWithDuplicate } from "@/lib/types/expense";
+import { DateRangePickerWithPresets } from "./date-range-picker-with-presets";
 import { DeleteExpenseDialog } from "./delete-expense-dialog";
 import { EditExpenseDialog } from "./edit-expense-dialog";
 import { ExpensesTable } from "./expenses-table";
@@ -25,6 +27,7 @@ export function Dashboard() {
   const [isUploadOpen, setUploadOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [fastDeleteEnabled, setFastDeleteEnabled] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [editingExpense, setEditingExpense] =
     useState<DisplayExpenseWithDuplicate | null>(null);
   const [deletingExpense, setDeletingExpense] =
@@ -89,14 +92,21 @@ export function Dashboard() {
   return (
     <div className="flex flex-col sm:gap-4 sm:py-4">
       <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
-        <div className="relative ml-auto flex-1 md:grow-0">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search expenses..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[336px]"
+        <div className="flex items-center gap-4 ml-auto">
+          <div className="relative flex-1 md:grow-0">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search expenses..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[336px]"
+            />
+          </div>
+          <DateRangePickerWithPresets
+            date={dateRange}
+            onDateChange={setDateRange}
+            className="flex-shrink-0"
           />
         </div>
         <div className="ml-auto flex items-center gap-4">
@@ -150,6 +160,7 @@ export function Dashboard() {
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 globalFilter={searchQuery}
+                dateRange={dateRange}
               />
             )}
           </CardContent>

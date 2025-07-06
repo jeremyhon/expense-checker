@@ -9,7 +9,9 @@ import {
   type SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { useEffect, useState } from "react";
+import { isWithinInterval, parseISO } from "date-fns";
+import { useEffect, useMemo, useState } from "react";
+import type { DateRange } from "react-day-picker";
 import {
   Table,
   TableBody,
@@ -27,6 +29,7 @@ interface ExpensesTableProps {
   onEdit: (expense: DisplayExpenseWithDuplicate) => void;
   onDelete: (expense: DisplayExpenseWithDuplicate) => void;
   globalFilter: string;
+  dateRange?: DateRange;
 }
 
 export function ExpensesTable({
@@ -34,14 +37,30 @@ export function ExpensesTable({
   onEdit,
   onDelete,
   globalFilter,
+  dateRange,
 }: ExpensesTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
   const columns = createExpenseColumns({ onEdit, onDelete });
 
+  // Filter expenses by date range
+  const filteredExpenses = useMemo(() => {
+    if (!dateRange?.from || !dateRange?.to) {
+      return expenses;
+    }
+
+    return expenses.filter((expense) => {
+      const expenseDate = parseISO(expense.date);
+      return isWithinInterval(expenseDate, {
+        start: dateRange.from,
+        end: dateRange.to,
+      });
+    });
+  }, [expenses, dateRange]);
+
   const table = useReactTable({
-    data: expenses,
+    data: filteredExpenses,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
