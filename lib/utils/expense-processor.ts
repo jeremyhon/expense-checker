@@ -12,6 +12,7 @@ import {
   transformAIInputToInsert,
   validateExpenseInsert,
 } from "@/lib/utils/expense-transformers";
+import { getMerchantMapping } from "@/lib/utils/merchant-mappings";
 
 /**
  * Create a hash for expense deduplication
@@ -48,9 +49,24 @@ async function convertExpenseToRecord(
     amountSgd
   );
 
+  // Check for existing merchant mapping and override category if found
+  let finalCategory = expense.category;
+  if (expense.merchant) {
+    const merchantMapping = await getMerchantMapping(userId, expense.merchant);
+    if (merchantMapping) {
+      finalCategory = merchantMapping.category;
+    }
+  }
+
+  // Create expense with potentially overridden category
+  const expenseWithMapping = {
+    ...expense,
+    category: finalCategory,
+  };
+
   // Use transformer with validation
   return transformAIInputToInsert(
-    expense,
+    expenseWithMapping,
     statementId,
     userId,
     amountSgd,
