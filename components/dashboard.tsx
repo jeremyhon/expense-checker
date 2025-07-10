@@ -1,6 +1,5 @@
 "use client";
 
-import { Search, Upload, Zap } from "lucide-react";
 import { useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { Button } from "@/components/ui/button";
@@ -12,12 +11,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { useExpenses } from "@/hooks/use-expenses";
 import type { DisplayExpenseWithDuplicate } from "@/lib/types/expense";
-import { DateRangePickerWithPresets } from "./date-range-picker-with-presets";
+import { DashboardControls } from "./dashboard-controls";
 import { DeleteExpenseDialog } from "./delete-expense-dialog";
 import { EditExpenseDialog } from "./edit-expense-dialog";
 import { ExpenseCategoryChart } from "./expense-category-chart";
@@ -92,53 +88,20 @@ export function Dashboard() {
   }
 
   return (
-    <div className="flex flex-col sm:gap-4 sm:py-4">
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
-        <div className="flex items-center gap-4 ml-auto">
-          <div className="relative flex-1 md:grow-0">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search expenses..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[336px]"
-            />
-          </div>
-          <DateRangePickerWithPresets
-            date={dateRange}
-            onDateChange={setDateRange}
-            className="flex-shrink-0"
-          />
-        </div>
-        <div className="ml-auto flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Zap className="h-4 w-4 text-muted-foreground" />
-            <Label htmlFor="fast-delete" className="text-sm font-medium">
-              Fast Delete
-            </Label>
-            <Switch
-              id="fast-delete"
-              checked={fastDeleteEnabled}
-              onCheckedChange={setFastDeleteEnabled}
-            />
-          </div>
-          <Button
-            size="sm"
-            className="h-8 gap-1"
-            onClick={() => setUploadOpen(true)}
-          >
-            <Upload className="h-3.5 w-3.5" />
-            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-              Upload Statement
-            </span>
-          </Button>
-        </div>
-      </header>
+    <div className="flex flex-col">
+      <DashboardControls
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        dateRange={dateRange}
+        onDateRangeChange={setDateRange}
+        fastDeleteEnabled={fastDeleteEnabled}
+        onFastDeleteChange={setFastDeleteEnabled}
+        onUploadClick={() => setUploadOpen(true)}
+      />
 
       <UploadDialog isOpen={isUploadOpen} onOpenChange={setUploadOpen} />
 
-      <div className="px-4 sm:px-6 space-y-4">
+      <div className="px-4 sm:px-6 space-y-4 py-4">
         <ExpenseHeadlineNumbers dateRange={dateRange} />
         <ExpenseCategoryChart dateRange={dateRange} />
       </div>
