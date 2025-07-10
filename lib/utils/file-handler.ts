@@ -89,7 +89,7 @@ export async function createStatementRecord(
     .from("statements")
     .insert({
       user_id: userId,
-      checksum: `${checksum}-${Date.now()}`, // Make unique to avoid constraint violation
+      checksum: checksum,
       blob_url: blobUrl,
       file_name: fileName,
       status: "processing",
@@ -105,21 +105,19 @@ export async function createStatementRecord(
 }
 
 /**
- * Check for duplicate statements (currently disabled for development)
+ * Check for duplicate statements
  */
 export async function checkDuplicateStatement(
-  _userId: string,
-  _checksum: string
+  userId: string,
+  checksum: string
 ): Promise<boolean> {
-  // F-3: Duplicate statement detection (temporarily disabled)
-  // const supabase = await createClient();
-  // const { data: existingStatement } = await supabase
-  //   .from("statements")
-  //   .select("id")
-  //   .eq("checksum", checksum)
-  //   .eq("user_id", userId)
-  //   .single();
+  const supabase = await createClient();
+  const { data: existingStatement } = await supabase
+    .from("statements")
+    .select("id")
+    .eq("checksum", checksum)
+    .eq("user_id", userId)
+    .single();
 
-  // return !!existingStatement;
-  return false;
+  return !!existingStatement;
 }
