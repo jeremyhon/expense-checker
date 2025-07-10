@@ -4,6 +4,7 @@ import {
   Home,
   LineChart,
   LogOut,
+  MapPin,
   Package,
   Package2,
   ShoppingCart,
@@ -86,6 +87,19 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               </TooltipTrigger>
               <TooltipContent side="right">Categories</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <a href="/merchant-mappings">
+                      <MapPin className="h-5 w-5" />
+                      <span className="sr-only">Merchant Mappings</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </TooltipTrigger>
+              <TooltipContent side="right">Merchant Mappings</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
