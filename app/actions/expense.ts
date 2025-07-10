@@ -7,6 +7,10 @@ import type {
   ExpenseUpdateData,
 } from "@/lib/types/expense";
 import { transformDatabaseRowsToDisplay } from "@/lib/utils/display-transformers";
+import {
+  createMerchantMapping,
+  updateAllExpensesByMerchant,
+} from "@/lib/utils/merchant-mappings";
 
 export async function getExpenses(): Promise<{
   expenses?: DisplayExpenseWithDuplicate[];
@@ -56,6 +60,19 @@ export async function updateExpense(
     return { error: "Unauthorized" };
   }
 
+  // Get the original expense to check if category changed
+  const { data: originalExpense, error: fetchError } = await supabase
+    .from("expenses")
+    .select("category, merchant")
+    .eq("id", expenseId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (fetchError) {
+    console.error("Error fetching original expense:", fetchError);
+    return { error: "Failed to fetch original expense" };
+  }
+
   // Update the expense in the database
   const { error } = await supabase
     .from("expenses")
@@ -76,10 +93,90 @@ export async function updateExpense(
     return { error: error.message };
   }
 
+  // If category changed and merchant exists, create merchant mapping
+  if (originalExpense.category !== data.category && data.merchant) {
+    await createMerchantMapping(user.id, data.merchant, data.category);
+  }
+
   // Revalidate the page to reflect changes
   revalidatePath("/");
 
   return { success: true };
+}
+
+export async function updateExpenseWithBulkMerchantUpdate(
+  expenseId: string,
+  data: ExpenseUpdateData,
+  applyToAllMerchantExpenses = false
+): Promise<{ success?: boolean; error?: string; updatedCount?: number }> {
+  const supabase = await createClient();
+
+  // Check if user is authenticated
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Unauthorized" };
+  }
+
+  // Get the original expense to check if category changed
+  const { data: originalExpense, error: fetchError } = await supabase
+    .from("expenses")
+    .select("category, merchant")
+    .eq("id", expenseId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (fetchError) {
+    console.error("Error fetching original expense:", fetchError);
+    return { error: "Failed to fetch original expense" };
+  }
+
+  // Update the expense in the database
+  const { error } = await supabase
+    .from("expenses")
+    .update({
+      description: data.description,
+      merchant: data.merchant,
+      category: data.category,
+      amount_sgd: data.amount,
+      original_amount: data.originalAmount,
+      original_currency: data.originalCurrency,
+      date: data.date,
+    })
+    .eq("id", expenseId)
+    .eq("user_id", user.id); // Ensure user can only update their own expenses
+
+  if (error) {
+    console.error("Error updating expense:", error);
+    return { error: error.message };
+  }
+
+  let updatedCount = 1; // The single expense we just updated
+
+  // If category changed and merchant exists, create merchant mapping
+  if (originalExpense.category !== data.category && data.merchant) {
+    await createMerchantMapping(user.id, data.merchant, data.category);
+
+    // If user wants to apply to all merchant expenses, do bulk update
+    if (applyToAllMerchantExpenses) {
+      const bulkUpdateResult = await updateAllExpensesByMerchant(
+        user.id,
+        data.merchant,
+        data.category
+      );
+
+      if (bulkUpdateResult.success) {
+        updatedCount = bulkUpdateResult.updatedCount;
+      }
+    }
+  }
+
+  // Revalidate the page to reflect changes
+  revalidatePath("/");
+
+  return { success: true, updatedCount };
 }
 
 export async function deleteExpense(
