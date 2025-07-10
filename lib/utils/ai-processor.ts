@@ -31,7 +31,8 @@ EXTRACTION RULES:
 6. Description: Keep concise but informative (e.g., "Coffee purchase" not "VISA PURCHASE 123456")
 
 CATEGORIZATION RULES:
-- Dining: Restaurants, cafes, food delivery, groceries for meals
+- Dining: Restaurants, cafes, food delivery, takeaways
+- Groceries: Supermarkets, grocery stores, markets, food purchases for home
 - Transportation: Public transport, taxis, ride-sharing, fuel, parking
 - Shopping: Retail purchases, clothing, electronics, general merchandise
 - Entertainment: Movies, games, streaming, events, hobbies
@@ -48,7 +49,7 @@ QUALITY CHECKS:
 - Confirm currency codes are valid 3-letter codes (SGD, USD, EUR, etc.)
 - Validate categories match the available options exactly
 
-Available categories: Dining, Transportation, Shopping, Entertainment, Bills & Utilities, Healthcare, Education, Travel, Other`;
+Available categories: Dining, Groceries, Transportation, Shopping, Entertainment, Bills & Utilities, Healthcare, Education, Travel, Other`;
 
 /**
  * Process PDF buffer and extract expenses using AI

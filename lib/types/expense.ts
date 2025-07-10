@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const EXPENSE_CATEGORIES = [
   "Dining",
+  "Groceries",
   "Transportation",
   "Shopping",
   "Entertainment",
