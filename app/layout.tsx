@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 import { AuthGuard } from "@/components/auth-guard";
 import { AuthProvider } from "@/components/auth-provider";
+import { TopNavigation } from "@/components/top-navigation";
 import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -33,6 +34,7 @@ export default async function RootLayout({
           <AuthProvider>
             <AuthGuard>
               <div className="min-h-screen w-full bg-muted/40">
+                <TopNavigation />
                 <main className="flex flex-1 flex-col">{children}</main>
               </div>
             </AuthGuard>
