@@ -179,6 +179,46 @@ export const realtimeDeletePayloadSchema = z.object({
   // May include other fields that Supabase sends in DELETE events
 });
 
+// Merchant mapping schemas
+export const merchantMappingSchema = z.object({
+  id: z.string().uuid(),
+  user_id: z.string().uuid(),
+  merchant_name: z.string(),
+  category: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export const merchantMappingInsertSchema = z.object({
+  user_id: z.string().uuid(),
+  merchant_name: z.string(),
+  category: z.string(),
+});
+
+export const merchantMappingUpdateSchema = z.object({
+  category: z.string(),
+});
+
+// Merchant mapping interfaces
+export interface MerchantMapping {
+  id: string;
+  user_id: string;
+  merchant_name: string;
+  category: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MerchantMappingInsert {
+  user_id: string;
+  merchant_name: string;
+  category: string;
+}
+
+export interface MerchantMappingUpdate {
+  category: string;
+}
+
 // Type guards and helpers
 export type DatabaseExpenseRow = z.infer<typeof databaseExpenseRowSchema>;
 export type RealtimeInsertPayload = z.infer<typeof realtimeInsertPayloadSchema>;
