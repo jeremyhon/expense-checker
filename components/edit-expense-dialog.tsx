@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,7 @@ import type {
   ExpenseFormData,
 } from "@/lib/types/expense";
 import { CURRENCIES, EXPENSE_CATEGORIES } from "@/lib/types/expense";
+import { getMerchantCategoryMappingClient } from "@/lib/utils/merchant-mappings-client";
 
 interface EditExpenseDialogProps {
   expense: DisplayExpenseWithDuplicate;
@@ -33,7 +35,8 @@ interface EditExpenseDialogProps {
     originalAmount: number;
     originalCurrency: string;
     date: string;
-  }) => Promise<{ success?: boolean; error?: string }>;
+    applyToAllMerchant?: boolean;
+  }) => Promise<{ success?: boolean; error?: string; updatedCount?: number }>;
   onClose: () => void;
 }
 
@@ -44,6 +47,8 @@ export function EditExpenseDialog({
 }: EditExpenseDialogProps) {
   const [open, setOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [showBulkUpdateOption, setShowBulkUpdateOption] = useState(false);
+  const [applyToAllMerchant, setApplyToAllMerchant] = useState(false);
   const [formData, setFormData] = useState<ExpenseFormData>({
     description: expense.description,
     merchant: expense.merchant,
@@ -53,6 +58,30 @@ export function EditExpenseDialog({
     originalCurrency: expense.originalCurrency,
     date: expense.date,
   });
+
+  // Check if we should show bulk update option when category changes
+  useEffect(() => {
+    const checkMerchantMapping = async () => {
+      const categoryChanged = formData.category !== expense.category;
+
+      if (categoryChanged && formData.merchant.trim()) {
+        try {
+          const existingMapping = await getMerchantCategoryMappingClient(
+            formData.merchant,
+            formData.category
+          );
+          setShowBulkUpdateOption(!existingMapping);
+        } catch (error) {
+          console.error("Error checking merchant mapping:", error);
+          setShowBulkUpdateOption(false);
+        }
+      } else {
+        setShowBulkUpdateOption(false);
+      }
+    };
+
+    checkMerchantMapping();
+  }, [formData.category, formData.merchant, expense.category]);
 
   const handleSave = async () => {
     setIsLoading(true);
@@ -65,6 +94,7 @@ export function EditExpenseDialog({
         originalAmount: Number.parseFloat(formData.originalAmount),
         originalCurrency: formData.originalCurrency,
         date: formData.date,
+        applyToAllMerchant: showBulkUpdateOption ? applyToAllMerchant : false,
       });
 
       if (result.success) {
@@ -213,6 +243,26 @@ export function EditExpenseDialog({
               className="col-span-3"
             />
           </div>
+          {showBulkUpdateOption && (
+            <div className="grid grid-cols-4 items-center gap-4">
+              <div className="col-span-1" />
+              <div className="col-span-3 flex items-center space-x-2">
+                <Checkbox
+                  id="apply-to-all"
+                  checked={applyToAllMerchant}
+                  onCheckedChange={(checked) =>
+                    setApplyToAllMerchant(checked === true)
+                  }
+                />
+                <Label
+                  htmlFor="apply-to-all"
+                  className="text-sm font-normal cursor-pointer"
+                >
+                  Apply this category to all expenses from "{formData.merchant}"
+                </Label>
+              </div>
+            </div>
+          )}
         </div>
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={handleCancel} disabled={isLoading}>
