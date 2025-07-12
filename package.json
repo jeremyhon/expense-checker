@@ -21,7 +21,7 @@
       "bun biome check --write ."
     ],
     "*.{ts,tsx}": [
-      "tsc --noEmit"
+      "bun run tsc --noEmit"
     ]
   },
   "dependencies": {
