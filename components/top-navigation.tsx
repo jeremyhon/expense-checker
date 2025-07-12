@@ -33,7 +33,7 @@ export function TopNavigation() {
         <div className="mr-4 flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
             <Package2 className="h-6 w-6" />
-            <span className="hidden font-bold sm:inline-block">Ledger</span>
+            <span className="hidden font-bold sm:inline-block">Spendro</span>
           </Link>
           <NavigationMenu>
             <NavigationMenuList>

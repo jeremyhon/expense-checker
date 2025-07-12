@@ -12,8 +12,8 @@ import { Toaster } from "@/components/ui/sonner";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Personal Expense Tracker",
-  description: "Upload statements and see your expenses in real-time.",
+  title: "Spendro",
+  description: "AI-powered expense tracking made simple.",
   generator: "v0.dev",
 };
 

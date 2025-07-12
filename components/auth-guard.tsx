@@ -69,10 +69,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       <div className="flex min-h-screen items-center justify-center bg-muted/40">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Personal Expense Tracker</CardTitle>
-            <CardDescription>
-              Sign in to start tracking your expenses
-            </CardDescription>
+            <CardTitle className="text-2xl">Spendro</CardTitle>
+            <CardDescription>Sign in to Spendro</CardDescription>
           </CardHeader>
           <CardContent>
             {debugInfo && (

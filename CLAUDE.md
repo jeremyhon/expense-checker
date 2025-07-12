@@ -31,7 +31,7 @@ No test framework is currently configured.
 
 ## Architecture Overview
 
-This is an AI-powered expense tracking application built with Next.js App Router that processes bank statement PDFs and extracts expenses using Google's Gemini AI.
+Spendro is an AI-powered expense tracking application built with Next.js App Router that processes bank statement PDFs and extracts expenses using Google's Gemini AI.
 
 ### Core Technologies
 - **Next.js 15.2.4** with App Router architecture

@@ -1,7 +1,7 @@
 -- ──────────────────────────────────────────────────────────────────────────
 --                          SCHEMA INITIALIZATION
 --
--- This script sets up the initial database schema for the expense tracker.
+-- This script sets up the initial database schema for Spendro.
 -- It includes table definitions, relationships, indexes, and security policies.
 -- ──────────────────────────────────────────────────────────────────────────
 
