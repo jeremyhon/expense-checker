@@ -4,3 +4,4 @@
 - test merchant mappings
 - move expenses to their own page
 - add a way to review uploaded expenses when you upload a statement
+- rename app to spendro
