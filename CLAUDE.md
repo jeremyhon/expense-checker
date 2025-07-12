@@ -109,7 +109,8 @@ The recommended development workflow for this project:
 7. **Final cleanup**: Once satisfied with changes:
    - Remove unnecessary code
    - Run `bun run check` for linting, formatting, and typechecking
-8. **Commit**: Use conventional commit style for version control
+8. **Update documentation**: Update CLAUDE.md if changes affect architecture, commands, or workflow
+9. **Commit**: Use conventional commit style for version control
 
 ## Precommit Hooks
 
