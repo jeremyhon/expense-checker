@@ -21,7 +21,7 @@
       "bun biome check --write ."
     ],
     "*.{ts,tsx}": [
-      "bun run tsc --noEmit"
+      "tscw --noEmit"
     ]
   },
   "dependencies": {
@@ -95,6 +95,7 @@
     "lint-staged": "^16.1.2",
     "postcss": "^8.5",
     "tailwindcss": "^3.4.17",
+    "tscw-config": "^1.1.2",
     "typescript": "^5"
   }
 }
