@@ -1,6 +1,6 @@
 # TODO
 
-- fix lint warnings and add precommit hook
+- ✅ fix lint warnings and add precommit hook
 - test merchant mappings
 - clean up padding
 - fix profile dropdown

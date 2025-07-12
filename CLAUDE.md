@@ -13,12 +13,8 @@ bun run build     # Create production build
 bun run start     # Start production server
 
 # Code Quality (uses Biome)
-bun run lint      # Run linter
-bun run lint:fix  # Run linter with auto-fix
-bun run format    # Format code
-bun run format:fix # Format code with auto-fix
-bun run check     # Run all checks (lint + format)
-bun run check:fix # Run all checks with auto-fix
+bun run precommit # Run linting, formatting with auto-fix, and typecheck
+bun run ci        # Run precommit + build (for CI/CD)
 
 # Database (Supabase)
 supabase --version    # Check Supabase CLI version
@@ -112,6 +108,23 @@ The recommended development workflow for this project:
 6. **Iterate**: Repeat steps 3-5 as needed
 7. **Final cleanup**: Once satisfied with changes:
    - Remove unnecessary code
-   - Run `bun run check:fix` for linting and formatting
-   - Run TypeScript checks
+   - Run `bun run precommit` for linting, formatting, and typechecking
 8. **Commit**: Use conventional commit style for version control
+
+## Precommit Hooks
+
+This project uses husky and lint-staged to automatically run code quality checks before commits:
+
+- **husky**: Manages git hooks
+- **lint-staged**: Runs linting and formatting only on staged files
+- **Precommit hook**: Automatically runs `bun run precommit` on all staged files before commit
+
+The precommit hook will:
+- Run Biome linting and auto-fix issues
+- Format code according to project standards
+- Prevent commits if there are unfixable linting errors
+
+To bypass the precommit hook (not recommended):
+```bash
+git commit --no-verify -m "commit message"
+```
