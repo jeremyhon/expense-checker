@@ -51,10 +51,13 @@ export function ExpensesTable({
     }
 
     return expenses.filter((expense) => {
+      if (!dateRange.from || !dateRange.to) {
+        return true;
+      }
       const expenseDate = parseISO(expense.date);
       return isWithinInterval(expenseDate, {
-        start: dateRange.from!,
-        end: dateRange.to!,
+        start: dateRange.from,
+        end: dateRange.to,
       });
     });
   }, [expenses, dateRange]);
