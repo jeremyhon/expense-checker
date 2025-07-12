@@ -25,6 +25,10 @@ bun run db:push       # Push migrations to remote database (uses .env.local pass
 
 # Database Reset (Development)
 bun run reset        # Reset database and clear blob storage (uses scripts/reset-db.ts)
+
+# Testing
+bun run gen-pdf      # Generate test PDF with unique hash for upload testing
+bun run clean-temp   # Clear temp folder (removes generated test PDFs)
 ```
 
 No test framework is currently configured.
