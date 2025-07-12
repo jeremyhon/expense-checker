@@ -6,6 +6,7 @@ import {
   deleteExpense,
   getExpenses,
   updateExpense,
+  updateExpenseWithBulkMerchantUpdate,
 } from "@/app/actions/expense";
 import { createClient } from "@/lib/supabase/client";
 import type {
@@ -121,18 +122,39 @@ export function useExpenses() {
   // Update expense function
   const handleUpdateExpense = async (
     expenseId: string,
-    data: ExpenseUpdateData
+    data: ExpenseUpdateData,
+    applyToAllMerchant = false
   ) => {
     try {
-      const result = await updateExpense(expenseId, data);
+      let result: { success?: boolean; error?: string; updatedCount?: number };
+      if (applyToAllMerchant) {
+        result = await updateExpenseWithBulkMerchantUpdate(
+          expenseId,
+          data,
+          true
+        );
+      } else {
+        result = await updateExpense(expenseId, data);
+      }
+
       if (result.error) {
         toast.error("Failed to update expense", {
           description: result.error,
         });
         return { error: result.error };
       }
-      toast.success("Expense updated successfully");
-      return { success: true };
+
+      const updatedCount = result.updatedCount || 1;
+      if (updatedCount > 1) {
+        toast.success(`Updated ${updatedCount} expenses successfully`, {
+          description:
+            "Applied category change to all expenses from this merchant",
+        });
+      } else {
+        toast.success("Expense updated successfully");
+      }
+
+      return { success: true, updatedCount };
     } catch (_err) {
       const errorMessage = "Failed to update expense";
       toast.error(errorMessage, {

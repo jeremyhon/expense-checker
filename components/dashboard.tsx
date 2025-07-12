@@ -56,10 +56,15 @@ export function Dashboard() {
     originalAmount: number;
     originalCurrency: string;
     date: string;
+    applyToAllMerchant?: boolean;
   }) => {
     if (!editingExpense) return { error: "No expense selected" };
 
-    const result = await updateExpense(editingExpense.id, data);
+    const result = await updateExpense(
+      editingExpense.id,
+      data,
+      data.applyToAllMerchant
+    );
     if (result.success) {
       setEditingExpense(null);
     }
