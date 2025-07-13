@@ -1,6 +1,6 @@
 {
-  "projectId": "proj_i35rwjfz",
-  "project": "expense-checker",
+  "projectId": "proj_09j7hjad",
+  "project": "spendro",
   "basePort": 3000,
   "packageManager": "bun",
   "copyFiles": [".env*", ".vscode/"],
