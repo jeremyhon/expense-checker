@@ -3,7 +3,7 @@
   "project": "spendro",
   "basePort": 3000,
   "packageManager": "bun",
-  "copyFiles": [".env*", ".vscode/"],
+  "copyFiles": [".env*", ".vscode/", ".claude/"],
   "hooks": {
     "postSetup": "bun install",
     "postMerge": "echo 'Merge completed successfully'"
