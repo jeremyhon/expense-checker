@@ -72,7 +72,11 @@ export async function uploadStatement(
     });
 
     revalidatePath("/");
-    return { success: true, message: `'${file.name}' is being processed.` };
+    return {
+      success: true,
+      message: `'${file.name}' is being processed.`,
+      statementId,
+    };
   } catch (error) {
     console.error("Upload failed:", error);
     const errorMessage =
