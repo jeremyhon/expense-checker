@@ -18,11 +18,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useCategories } from "@/hooks/use-categories";
 import type {
   DisplayExpenseWithDuplicate,
   ExpenseFormData,
 } from "@/lib/types/expense";
-import { CURRENCIES, EXPENSE_CATEGORIES } from "@/lib/types/expense";
+import { CURRENCIES } from "@/lib/types/expense";
 import { getMerchantCategoryMappingClient } from "@/lib/utils/merchant-mappings-client";
 
 interface EditExpenseDialogProps {
@@ -48,6 +49,7 @@ export function EditExpenseDialog({
   const [open, setOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [showBulkUpdateOption, setShowBulkUpdateOption] = useState(false);
+  const { categories } = useCategories();
   const [applyToAllMerchant, setApplyToAllMerchant] = useState(false);
   const [formData, setFormData] = useState<ExpenseFormData>({
     description: expense.description,
@@ -174,9 +176,9 @@ export function EditExpenseDialog({
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent>
-                {EXPENSE_CATEGORIES.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category}
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.name}>
+                    {category.name}
                   </SelectItem>
                 ))}
               </SelectContent>

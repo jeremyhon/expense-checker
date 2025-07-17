@@ -33,8 +33,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useCategories } from "@/hooks/use-categories";
 import type { MerchantMapping } from "@/lib/types/expense";
-import { EXPENSE_CATEGORIES } from "@/lib/types/expense";
 
 interface MerchantMappingsClientProps {
   initialMappings: MerchantMapping[];
@@ -43,6 +43,7 @@ interface MerchantMappingsClientProps {
 export function MerchantMappingsClient({
   initialMappings,
 }: MerchantMappingsClientProps) {
+  const { categories } = useCategories();
   const [mappings, _setMappings] = useState<MerchantMapping[]>(initialMappings);
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -171,9 +172,9 @@ export function MerchantMappingsClient({
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {EXPENSE_CATEGORIES.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.name}>
+                        {category.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -304,9 +305,9 @@ export function MerchantMappingsClient({
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {EXPENSE_CATEGORIES.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.name}>
+                        {category.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

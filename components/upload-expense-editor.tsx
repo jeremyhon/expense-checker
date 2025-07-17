@@ -19,11 +19,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useCategories } from "@/hooks/use-categories";
 import type {
   DisplayExpenseWithDuplicate,
   ExpenseFormData,
 } from "@/lib/types/expense";
-import { CURRENCIES, EXPENSE_CATEGORIES } from "@/lib/types/expense";
+import { CURRENCIES } from "@/lib/types/expense";
 import { cn } from "@/lib/utils";
 
 interface UploadExpenseEditorProps {
@@ -51,6 +52,7 @@ export function UploadExpenseEditor({
   onCancel,
   onClear,
 }: UploadExpenseEditorProps) {
+  const { categories } = useCategories();
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [formData, setFormData] = useState<ExpenseFormData>({
@@ -230,9 +232,9 @@ export function UploadExpenseEditor({
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent>
-                {EXPENSE_CATEGORIES.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category}
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.name}>
+                    {category.name}
                   </SelectItem>
                 ))}
               </SelectContent>
