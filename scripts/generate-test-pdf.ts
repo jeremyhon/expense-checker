@@ -10,8 +10,7 @@ interface ExpenseItem {
 }
 
 export async function generateTestPdf(
-  expenses: ExpenseItem[] = [],
-  fileName?: string
+  expenses: ExpenseItem[] = []
 ): Promise<Buffer> {
   const uniqueId = Date.now() + Math.random().toString(36).substring(2);
 
