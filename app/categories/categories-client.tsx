@@ -120,15 +120,19 @@ export function CategoriesClient({ initialCategories }: CategoriesClientProps) {
     startTransition(async () => {
       try {
         const result = await deleteCategory(deletingCategory.id, {
-          targetCategoryId: targetCategoryId || undefined,
+          targetCategoryId:
+            targetCategoryId === "DELETE_ALL"
+              ? undefined
+              : targetCategoryId || undefined,
         });
         setCategories(categories.filter((c) => c.id !== deletingCategory.id));
         setDeletingCategory(null);
         setTargetCategoryId("");
 
-        const message = targetCategoryId
-          ? `Category deleted. ${result.reassigned_count} expenses reassigned.`
-          : `Category deleted. ${result.deleted_count} expenses removed.`;
+        const message =
+          targetCategoryId && targetCategoryId !== "DELETE_ALL"
+            ? `Category deleted. ${result.reassigned_count} expenses reassigned.`
+            : `Category deleted. ${result.deleted_count} expenses removed.`;
 
         toast({
           title: "Category deleted",
@@ -336,7 +340,9 @@ export function CategoriesClient({ initialCategories }: CategoriesClientProps) {
                     <SelectValue placeholder="Select a category or delete expenses" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Delete all expenses</SelectItem>
+                    <SelectItem value="DELETE_ALL">
+                      Delete all expenses
+                    </SelectItem>
                     {categories
                       .filter((c) => c.id !== deletingCategory?.id)
                       .map((category) => (
@@ -358,7 +364,9 @@ export function CategoriesClient({ initialCategories }: CategoriesClientProps) {
               onClick={handleDelete}
               disabled={isLoading}
             >
-              {targetCategoryId ? "Delete & Reassign" : "Delete"}
+              {targetCategoryId && targetCategoryId !== "DELETE_ALL"
+                ? "Delete & Reassign"
+                : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>
