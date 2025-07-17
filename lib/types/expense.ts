@@ -76,6 +76,24 @@ export const aiExpenseSchema = z.object({
   amount_sgd: z.number().optional(),
 });
 
+/**
+ * Create dynamic AI expense schema with category validation
+ */
+export function createAiExpenseSchema(validCategories: string[]) {
+  return z.object({
+    date: z.string(),
+    description: z.string(),
+    merchant: z.string(),
+    category: z.string().transform((category) => {
+      // Map invalid categories to "Other"
+      return validCategories.includes(category) ? category : "Other";
+    }),
+    original_amount: z.number(),
+    original_currency: z.string(),
+    amount_sgd: z.number().optional(),
+  });
+}
+
 export const expenseInsertDataSchema = z.object({
   statement_id: z.string().uuid(),
   user_id: z.string().uuid(),
@@ -86,7 +104,8 @@ export const expenseInsertDataSchema = z.object({
   original_amount: z.number(),
   original_currency: z.string(),
   currency: z.string(),
-  category: z.string(),
+  category: z.string(), // Still accept category name during transition
+  category_id: z.string().uuid().optional(), // New category ID field
   line_hash: z.string(),
 });
 
@@ -131,7 +150,8 @@ export interface ExpenseInsertData {
   original_amount: number;
   original_currency: string;
   currency: string;
-  category: string;
+  category: string; // Still needed during transition
+  category_id?: string; // New category ID field
   line_hash: string;
 }
 

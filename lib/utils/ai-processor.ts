@@ -1,11 +1,17 @@
 import { google } from "@ai-sdk/google";
 import { streamObject } from "ai";
-import { type AIExpenseInput, aiExpenseSchema } from "@/lib/types/expense";
+import {
+  type AIExpenseInput,
+  createAiExpenseSchema,
+} from "@/lib/types/expense";
 
 /**
- * AI prompt for expense extraction from PDF statements
+ * Generate dynamic AI prompt for expense extraction from PDF statements
  */
-const EXPENSE_EXTRACTION_PROMPT = `You are a financial data extraction expert. Analyze this bank statement PDF and extract ALL transaction expenses (outgoing payments, purchases, debits).
+function generateExpenseExtractionPrompt(userCategories: string[]): string {
+  const categoriesText = userCategories.join(", ");
+
+  return `You are a financial data extraction expert. Analyze this bank statement PDF and extract ALL transaction expenses (outgoing payments, purchases, debits).
 
 WHAT TO INCLUDE:
 - Purchases from merchants, stores, restaurants
@@ -31,16 +37,7 @@ EXTRACTION RULES:
 6. Description: Keep concise but informative (e.g., "Coffee purchase" not "VISA PURCHASE 123456")
 
 CATEGORIZATION RULES:
-- Dining: Restaurants, cafes, food delivery, takeaways
-- Groceries: Supermarkets, grocery stores, markets, food purchases for home
-- Transportation: Public transport, taxis, ride-sharing, fuel, parking
-- Shopping: Retail purchases, clothing, electronics, general merchandise
-- Entertainment: Movies, games, streaming, events, hobbies
-- Bills & Utilities: Utilities, phone, internet, insurance, subscriptions
-- Healthcare: Medical, dental, pharmacy, fitness, wellness
-- Education: Schools, courses, books, educational materials
-- Travel: Foreign transactions, hotels, flights, travel-related expenses
-- Other: Miscellaneous expenses that don't fit other categories
+Use the user's custom categories and categorize expenses appropriately. If uncertain, use "Other".
 
 QUALITY CHECKS:
 - Verify each transaction is a genuine expense (money leaving the account)
@@ -49,29 +46,33 @@ QUALITY CHECKS:
 - Confirm currency codes are valid 3-letter codes (SGD, USD, EUR, etc.)
 - Validate categories match the available options exactly
 
-Available categories: Dining, Groceries, Transportation, Shopping, Entertainment, Bills & Utilities, Healthcare, Education, Travel, Other`;
+Available categories: ${categoriesText}`;
+}
 
 /**
  * Process PDF buffer and extract expenses using AI
  * @param fileBuffer - PDF file buffer
+ * @param userCategories - User's custom categories
  * @returns AsyncGenerator<ExpenseInput> - Stream of extracted expenses
  */
 export async function* extractExpensesFromPdf(
-  fileBuffer: Buffer
+  fileBuffer: Buffer,
+  userCategories: string[]
 ): AsyncGenerator<AIExpenseInput, void, unknown> {
   const base64Pdf = fileBuffer.toString("base64");
+  const prompt = generateExpenseExtractionPrompt(userCategories);
 
   const { elementStream } = streamObject({
     model: google("gemini-2.5-flash"),
     output: "array",
-    schema: aiExpenseSchema,
+    schema: createAiExpenseSchema(userCategories),
     messages: [
       {
         role: "user",
         content: [
           {
             type: "text",
-            text: EXPENSE_EXTRACTION_PROMPT,
+            text: prompt,
           },
           {
             type: "file",

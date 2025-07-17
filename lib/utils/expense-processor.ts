@@ -1,5 +1,9 @@
 import crypto from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  getCategories,
+  getOrCreateCategoryByName,
+} from "@/app/actions/categories";
 import { createClient } from "@/lib/supabase/server";
 import type {
   AIExpenseInput,
@@ -49,8 +53,11 @@ async function convertExpenseToRecord(
     amountSgd
   );
 
+  // Foreign transactions automatically categorized as "Travel" (existing logic)
+  let finalCategory =
+    expense.original_currency !== "SGD" ? "Travel" : expense.category;
+
   // Check for existing merchant mapping and override category if found
-  let finalCategory = expense.category;
   if (expense.merchant) {
     const merchantMapping = await getMerchantMapping(userId, expense.merchant);
     if (merchantMapping) {
@@ -64,14 +71,24 @@ async function convertExpenseToRecord(
     category: finalCategory,
   };
 
+  // Get category ID for the category name
+  const categoryId = await getOrCreateCategoryByName(finalCategory, userId);
+
   // Use transformer with validation
-  return transformAIInputToInsert(
+  const insertData = transformAIInputToInsert(
     expenseWithMapping,
     statementId,
     userId,
     amountSgd,
-    lineHash
+    lineHash,
+    categoryId
   );
+
+  // Add category ID to the insert data
+  return {
+    ...insertData,
+    category_id: categoryId,
+  };
 }
 
 /**
@@ -120,8 +137,15 @@ export async function processPdfExpenses(
   let expenseCount = 0;
 
   try {
+    // Fetch user categories for AI processing
+    const userCategories = await getCategories();
+    const categoryNames = userCategories.map((cat) => cat.name);
+
     // Extract expenses from PDF using AI
-    for await (const expense of extractExpensesFromPdf(fileBuffer)) {
+    for await (const expense of extractExpensesFromPdf(
+      fileBuffer,
+      categoryNames
+    )) {
       expenseCount++;
 
       // Convert to database record
