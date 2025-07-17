@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getOrCreateCategoryByName } from "@/app/actions/categories";
 import { createClient } from "@/lib/supabase/server";
 import type {
   DisplayExpenseWithDuplicate,
@@ -27,9 +28,9 @@ export async function getExpenses(): Promise<{
     return { error: "Unauthorized" };
   }
 
-  // Fetch all expenses for the user
+  // Fetch all expenses for the user using the view that includes category names
   const { data: expenses, error } = await supabase
-    .from("expenses")
+    .from("expenses_with_categories")
     .select("*")
     .eq("user_id", user.id)
     .order("date", { ascending: false });
@@ -73,13 +74,17 @@ export async function updateExpense(
     return { error: "Failed to fetch original expense" };
   }
 
+  // Get category ID for the category name
+  const categoryId = await getOrCreateCategoryByName(data.category, user.id);
+
   // Update the expense in the database
   const { error } = await supabase
     .from("expenses")
     .update({
       description: data.description,
       merchant: data.merchant,
-      category: data.category,
+      category: data.category, // Keep for backward compatibility
+      category_id: categoryId,
       amount_sgd: data.amount,
       original_amount: data.originalAmount,
       original_currency: data.originalCurrency,
@@ -133,13 +138,17 @@ export async function updateExpenseWithBulkMerchantUpdate(
     return { error: "Failed to fetch original expense" };
   }
 
+  // Get category ID for the category name
+  const categoryId = await getOrCreateCategoryByName(data.category, user.id);
+
   // Update the expense in the database
   const { error } = await supabase
     .from("expenses")
     .update({
       description: data.description,
       merchant: data.merchant,
-      category: data.category,
+      category: data.category, // Keep for backward compatibility
+      category_id: categoryId,
       amount_sgd: data.amount,
       original_amount: data.originalAmount,
       original_currency: data.originalCurrency,

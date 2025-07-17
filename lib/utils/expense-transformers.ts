@@ -43,7 +43,8 @@ export function transformAIInputToInsert(
   statementId: string,
   userId: string,
   convertedAmountSgd: number,
-  lineHash: string
+  lineHash: string,
+  categoryId: string
 ): ExpenseInsertData {
   const insertData = {
     statement_id: statementId,
@@ -55,7 +56,8 @@ export function transformAIInputToInsert(
     original_amount: aiInput.original_amount,
     original_currency: aiInput.original_currency,
     currency: aiInput.original_currency,
-    category: aiInput.original_currency !== "SGD" ? "Travel" : aiInput.category,
+    category: aiInput.category, // Keep for backward compatibility
+    category_id: categoryId,
     line_hash: lineHash,
   };
 

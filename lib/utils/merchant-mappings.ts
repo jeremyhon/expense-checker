@@ -71,9 +71,20 @@ export async function updateAllExpensesByMerchant(
 ): Promise<{ success: boolean; updatedCount: number }> {
   const supabase = await createClient();
 
+  // Import category helper at the top of the file (need to add this import)
+  const { getOrCreateCategoryByName } = await import(
+    "@/app/actions/categories"
+  );
+
+  // Get category ID for the new category
+  const categoryId = await getOrCreateCategoryByName(newCategory, userId);
+
   const { data, error } = await supabase
     .from("expenses")
-    .update({ category: newCategory })
+    .update({
+      category: newCategory, // Keep for backward compatibility
+      category_id: categoryId,
+    })
     .eq("user_id", userId)
     .ilike("merchant", merchantName) // Case-insensitive match
     .select("id");
