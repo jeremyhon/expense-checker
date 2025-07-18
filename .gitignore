@@ -30,3 +30,6 @@ next-env.d.ts
 
 # temp
 /temp
+
+# dev logs
+dev.log

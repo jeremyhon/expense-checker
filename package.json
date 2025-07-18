@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev --turbopack | tee dev.log",
     "build": "bun run next build",
     "start": "bun run next start",
     "check": "bun biome check --write . && tsc --noEmit",
@@ -12,10 +12,7 @@
     "db:push": "source .env.local && supabase db push -p $SUPABASE_DB_PW",
     "gen-pdf": "bun run scripts/generate-test-pdf.ts",
     "clean-temp": "rm -rf temp && mkdir -p temp",
-    "tmux:dev": "tmux new-session -d -s dev-session 'bun run dev'",
-    "tmux:restart": "tmux send-keys -t dev-session C-c && tmux send-keys -t dev-session 'bun run dev' Enter",
-    "tmux:stop": "tmux kill-session -t dev-session",
-    "tmux:logs": "tmux capture-pane -t dev-session -p",
+    "log:clear": "rm -f dev.log",
     "prepare": "husky"
   },
   "lint-staged": {

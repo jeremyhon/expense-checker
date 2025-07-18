@@ -29,6 +29,9 @@ bun run reset        # Reset database and clear blob storage (uses scripts/reset
 # Testing
 bun run gen-pdf      # Generate test PDF with unique hash for upload testing
 bun run clean-temp   # Clear temp folder (removes generated test PDFs)
+
+# Logs
+bun run log:clear    # Clear development server logs (dev.log)
 ```
 
 No test framework is currently configured.
@@ -104,17 +107,16 @@ Spendro is an AI-powered expense tracking application built with Next.js App Rou
 
 The recommended development workflow for this project:
 
-1. **Check tmux session**: Verify if dev server is already running in tmux
-2. **Start dev server**: Spin up `bun run dev` in tmux if not running
-3. **Make changes**: Edit code with hot reload automatically handling updates
-4. **Monitor logs**: Check dev server logs for any errors or warnings
-5. **Test frontend changes**: Use playwright-mcp to verify frontend changes if applicable
-6. **Iterate**: Repeat steps 3-5 as needed
-7. **Final cleanup**: Once satisfied with changes:
+1. **NEVER start or stop the dev server**: The dev server is managed externally
+2. **Make changes**: Edit code with hot reload automatically handling updates
+3. **Monitor logs**: To see dev server logs, refer to `dev.log` file
+4. **Test frontend changes**: Use playwright-mcp to verify frontend changes if applicable
+5. **Iterate**: Repeat steps 2-4 as needed
+6. **Final cleanup**: Once satisfied with changes:
    - Remove unnecessary code
    - Run `bun run check` for linting, formatting, and typechecking
-8. **Update documentation**: Update CLAUDE.md if changes affect architecture, commands, or workflow
-9. **Commit**: Use conventional commit style for version control
+7. **Update documentation**: Update CLAUDE.md if changes affect architecture, commands, or workflow
+8. **Commit**: Use conventional commit style for version control
 
 ## Precommit Hooks
 
