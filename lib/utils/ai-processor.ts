@@ -63,7 +63,7 @@ function createPermissiveExpenseSchema(userCategories: string[]) {
   const stringSchema = z.string().transform((data) => {
     console.log(
       "🔍 Received JSON string, parsing:",
-      data.substring(0, 100) + "..."
+      `${data.substring(0, 100)}...`
     );
 
     try {
