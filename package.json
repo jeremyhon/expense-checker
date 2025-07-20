@@ -81,12 +81,14 @@
     "sonner": "^2.0.6",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
+    "temporal-polyfill": "^0.3.0",
     "vaul": "^0.9.9",
     "vercel": "latest",
     "zod": "latest"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.1.2",
+    "@types/bun": "^1.2.19",
     "@types/node": "^22.16.4",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
