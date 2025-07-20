@@ -20,6 +20,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
+import { useStatementStatus } from "@/hooks/use-statement-status";
 import { useToast } from "@/hooks/use-toast";
 import { useUploadExpenses } from "@/hooks/use-upload-expenses";
 import type { DisplayExpenseWithDuplicate } from "@/lib/types/expense";
@@ -63,18 +64,29 @@ export function UploadDialog({ isOpen, onOpenChange }: UploadDialogProps) {
   const { expenses, updateExpense, expenseCount } =
     useUploadExpenses(statementIds);
 
+  // Use Electric SQL for real-time statement status tracking
+  const { statements: statementStatuses } = useStatementStatus({
+    statementIds,
+    autoSubscribe: statementIds.length > 0,
+  });
+
   // Create a key for resetting components when statement IDs change
   const componentKey = statementIds.join(",");
 
-  // Compute upload state directly instead of using useEffect
+  // Compute upload state with Electric SQL status integration
   const uploadState = useMemo<UploadState>(() => {
-    const isProcessing = uploads.some((u) => u.status === "uploading");
+    const isUploading = uploads.some((u) => u.status === "uploading");
     const hasSuccessfulUploads = uploads.some((u) => u.status === "success");
 
-    if (isProcessing) return "processing";
+    // Check if any statements are still processing via Electric SQL
+    const isProcessingStatements = statementStatuses.some(
+      (statement) => statement.status === "processing"
+    );
+
+    if (isUploading || isProcessingStatements) return "processing";
     if (hasSuccessfulUploads || expenseCount > 0) return "review";
     return "upload";
-  }, [uploads, expenseCount]);
+  }, [uploads, expenseCount, statementStatuses]);
 
   // Clear state when dialog closes
   useEffect(() => {
@@ -204,6 +216,49 @@ export function UploadDialog({ isOpen, onOpenChange }: UploadDialogProps) {
     setSelectedExpense(null);
   };
 
+  // Helper function to get Electric SQL status for a file upload
+  const getElectricStatus = (upload: FileUpload) => {
+    if (!upload.statementId) return null;
+    return statementStatuses.find((s) => s.id === upload.statementId);
+  };
+
+  // Enhanced status display that combines upload status with Electric SQL status
+  const getEnhancedStatus = (upload: FileUpload) => {
+    const electricStatus = getElectricStatus(upload);
+
+    if (upload.status === "uploading") {
+      return { text: "Uploading...", variant: "default" as const };
+    }
+
+    if (upload.status === "error") {
+      return {
+        text: upload.message || "Upload failed",
+        variant: "destructive" as const,
+      };
+    }
+
+    if (upload.status === "success" && electricStatus) {
+      switch (electricStatus.status) {
+        case "processing":
+          return { text: "AI processing...", variant: "default" as const };
+        case "completed":
+          return { text: "Processing complete", variant: "success" as const };
+        case "failed":
+          return { text: "Processing failed", variant: "destructive" as const };
+        default:
+          return {
+            text: upload.message || "Uploaded",
+            variant: "default" as const,
+          };
+      }
+    }
+
+    return {
+      text: upload.message || upload.status,
+      variant: "default" as const,
+    };
+  };
+
   const getDialogTitle = () => {
     switch (uploadState) {
       case "upload":
@@ -221,8 +276,16 @@ export function UploadDialog({ isOpen, onOpenChange }: UploadDialogProps) {
     switch (uploadState) {
       case "upload":
         return "Drag and drop your PDF bank statements here or click to select files.";
-      case "processing":
+      case "processing": {
+        const processingCount = statementStatuses.filter(
+          (s) => s.status === "processing"
+        ).length;
+        const totalCount = statementStatuses.length;
+        if (processingCount > 0) {
+          return `AI is extracting expenses from ${processingCount} of ${totalCount} statements. This may take a moment.`;
+        }
         return "AI is extracting expenses from your statements. This may take a moment.";
+      }
       case "review":
         return "Review and edit the extracted expenses before completing the upload.";
       default:
@@ -259,40 +322,66 @@ export function UploadDialog({ isOpen, onOpenChange }: UploadDialogProps) {
 
           {uploads.length > 0 && (
             <div className="mt-4 space-y-4 max-h-60 overflow-y-auto">
-              {uploads.map(({ file, status, progress, message }) => (
-                <div key={file.name} className="flex items-center gap-4">
-                  <FileIcon className="h-8 w-8 text-muted-foreground" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium truncate">{file.name}</p>
-                    {status === "uploading" || status === "success" ? (
-                      <Progress value={progress} className="h-2 mt-1" />
-                    ) : (
-                      <p
-                        className={`text-xs ${
-                          status === "error"
-                            ? "text-destructive"
-                            : "text-muted-foreground"
-                        }`}
-                      >
-                        {message || status}
+              {uploads.map((upload) => {
+                const enhancedStatus = getEnhancedStatus(upload);
+                const electricStatus = getElectricStatus(upload);
+                const showProgress =
+                  upload.status === "uploading" ||
+                  (upload.status === "success" &&
+                    electricStatus?.status === "processing");
+
+                return (
+                  <div
+                    key={upload.file.name}
+                    className="flex items-center gap-4"
+                  >
+                    <FileIcon className="h-8 w-8 text-muted-foreground" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium truncate">
+                        {upload.file.name}
                       </p>
+                      {showProgress ? (
+                        <div className="space-y-1">
+                          <Progress
+                            value={upload.progress}
+                            className="h-2 mt-1"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            {enhancedStatus.text}
+                          </p>
+                        </div>
+                      ) : (
+                        <p
+                          className={`text-xs ${
+                            enhancedStatus.variant === "destructive"
+                              ? "text-destructive"
+                              : enhancedStatus.variant === "success"
+                                ? "text-green-600"
+                                : "text-muted-foreground"
+                          }`}
+                        >
+                          {enhancedStatus.text}
+                        </p>
+                      )}
+                    </div>
+                    {upload.status === "success" &&
+                      electricStatus?.status === "completed" && (
+                        <CheckCircle2 className="h-5 w-5 text-green-500" />
+                      )}
+                    {(upload.status === "pending" ||
+                      upload.status === "error") && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => removeFile(upload.file.name)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
                     )}
                   </div>
-                  {status === "success" && (
-                    <CheckCircle2 className="h-5 w-5 text-green-500" />
-                  )}
-                  {(status === "pending" || status === "error") && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={() => removeFile(file.name)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
@@ -358,42 +447,66 @@ export function UploadDialog({ isOpen, onOpenChange }: UploadDialogProps) {
 
               {uploads.length > 0 && (
                 <div className="space-y-2 flex-1 min-h-0 overflow-y-auto mt-4">
-                  {uploads.map(({ file, status, progress, message }) => (
-                    <div key={file.name} className="flex items-center gap-2">
-                      <FileIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium truncate">
-                          {file.name}
-                        </p>
-                        {status === "uploading" || status === "success" ? (
-                          <Progress value={progress} className="h-1 mt-1" />
-                        ) : (
-                          <p
-                            className={`text-[10px] ${
-                              status === "error"
-                                ? "text-destructive"
-                                : "text-muted-foreground"
-                            }`}
-                          >
-                            {message || status}
+                  {uploads.map((upload) => {
+                    const enhancedStatus = getEnhancedStatus(upload);
+                    const electricStatus = getElectricStatus(upload);
+                    const showProgress =
+                      upload.status === "uploading" ||
+                      (upload.status === "success" &&
+                        electricStatus?.status === "processing");
+
+                    return (
+                      <div
+                        key={upload.file.name}
+                        className="flex items-center gap-2"
+                      >
+                        <FileIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium truncate">
+                            {upload.file.name}
                           </p>
+                          {showProgress ? (
+                            <div className="space-y-1">
+                              <Progress
+                                value={upload.progress}
+                                className="h-1 mt-1"
+                              />
+                              <p className="text-[10px] text-muted-foreground">
+                                {enhancedStatus.text}
+                              </p>
+                            </div>
+                          ) : (
+                            <p
+                              className={`text-[10px] ${
+                                enhancedStatus.variant === "destructive"
+                                  ? "text-destructive"
+                                  : enhancedStatus.variant === "success"
+                                    ? "text-green-600"
+                                    : "text-muted-foreground"
+                              }`}
+                            >
+                              {enhancedStatus.text}
+                            </p>
+                          )}
+                        </div>
+                        {upload.status === "success" &&
+                          electricStatus?.status === "completed" && (
+                            <CheckCircle2 className="h-3 w-3 text-green-500 flex-shrink-0" />
+                          )}
+                        {(upload.status === "pending" ||
+                          upload.status === "error") && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-4 w-4 flex-shrink-0"
+                            onClick={() => removeFile(upload.file.name)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
                         )}
                       </div>
-                      {status === "success" && (
-                        <CheckCircle2 className="h-3 w-3 text-green-500 flex-shrink-0" />
-                      )}
-                      {(status === "pending" || status === "error") && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-4 w-4 flex-shrink-0"
-                          onClick={() => removeFile(file.name)}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
