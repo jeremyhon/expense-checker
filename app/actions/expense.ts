@@ -12,6 +12,12 @@ import {
   createMerchantMapping,
   updateAllExpensesByMerchant,
 } from "@/lib/utils/merchant-mappings";
+import {
+  countMonthsInRange,
+  dateToPlainDate,
+  getDisplayMonthKey,
+  plainDateFromString,
+} from "@/lib/utils/temporal-dates";
 
 export async function getExpenses(): Promise<{
   expenses?: DisplayExpenseWithDuplicate[];
@@ -246,9 +252,10 @@ export async function getMonthlyExpensesByCategory(dateRange?: {
 
   // Add date filtering if dateRange is provided
   if (dateRange?.from && dateRange?.to) {
-    // Format dates as YYYY-MM-DD to avoid timezone issues
-    const fromStr = `${dateRange.from.getFullYear()}-${String(dateRange.from.getMonth() + 1).padStart(2, "0")}-${String(dateRange.from.getDate()).padStart(2, "0")}`;
-    const toStr = `${dateRange.to.getFullYear()}-${String(dateRange.to.getMonth() + 1).padStart(2, "0")}-${String(dateRange.to.getDate()).padStart(2, "0")}`;
+    // Convert JS Date to PlainDate, then use .toString() for robust YYYY-MM-DD format
+    const fromStr = dateToPlainDate(dateRange.from).toString();
+    const toStr = dateToPlainDate(dateRange.to).toString();
+
     query = query.gte("date", fromStr).lte("date", toStr);
   }
 
@@ -266,10 +273,10 @@ export async function getMonthlyExpensesByCategory(dateRange?: {
   const allCategories = new Set<string>();
 
   expenses?.forEach((expense) => {
-    const date = new Date(expense.date);
-    const monthKey = `${date.toLocaleString("default", {
-      month: "short",
-    })} ${date.getFullYear()}`;
+    const date = plainDateFromString(expense.date);
+    if (!date) return; // Skip invalid dates
+
+    const monthKey = getDisplayMonthKey(date);
 
     allCategories.add(expense.category);
 
@@ -341,9 +348,10 @@ export async function getExpenseHeadlineNumbers(dateRange?: {
 
   // Add date filtering if dateRange is provided
   if (dateRange?.from && dateRange?.to) {
-    // Format dates as YYYY-MM-DD to avoid timezone issues
-    const fromStr = `${dateRange.from.getFullYear()}-${String(dateRange.from.getMonth() + 1).padStart(2, "0")}-${String(dateRange.from.getDate()).padStart(2, "0")}`;
-    const toStr = `${dateRange.to.getFullYear()}-${String(dateRange.to.getMonth() + 1).padStart(2, "0")}-${String(dateRange.to.getDate()).padStart(2, "0")}`;
+    // Convert JS Date to PlainDate, then use .toString() for robust YYYY-MM-DD format
+    const fromStr = dateToPlainDate(dateRange.from).toString();
+    const toStr = dateToPlainDate(dateRange.to).toString();
+
     query = query.gte("date", fromStr).lte("date", toStr);
   }
 
@@ -376,8 +384,10 @@ export async function getExpenseHeadlineNumbers(dateRange?: {
   expenses.forEach((expense) => {
     const amount = Number(expense.amount_sgd);
     const category = expense.category;
-    const date = new Date(expense.date);
-    const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+    const date = plainDateFromString(expense.date);
+    if (!date) return; // Skip invalid dates
+
+    const monthKey = `${date.year}-${date.month}`;
 
     // Track unique months for average calculation
     monthsSet.add(monthKey);
@@ -392,25 +402,11 @@ export async function getExpenseHeadlineNumbers(dateRange?: {
   // Calculate month count based on date range if provided, otherwise use actual expense months
   let monthCount: number;
   if (dateRange?.from && dateRange?.to) {
-    // Calculate months in the specified date range
-    const startDate = new Date(
-      dateRange.from.getFullYear(),
-      dateRange.from.getMonth(),
-      1
-    );
-    const endDate = new Date(
-      dateRange.to.getFullYear(),
-      dateRange.to.getMonth(),
-      1
-    );
+    // Convert JS Date to PlainDate directly - avoids timezone issues completely
+    const fromPlainDate = dateToPlainDate(dateRange.from);
+    const toPlainDate = dateToPlainDate(dateRange.to);
 
-    let months = 0;
-    const current = new Date(startDate);
-    while (current <= endDate) {
-      months++;
-      current.setMonth(current.getMonth() + 1);
-    }
-    monthCount = months;
+    monthCount = countMonthsInRange(fromPlainDate, toPlainDate);
   } else {
     // Use actual expense months if no date range specified
     monthCount = monthsSet.size || 1;

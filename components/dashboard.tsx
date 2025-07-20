@@ -1,9 +1,14 @@
 "use client";
 
-import { endOfMonth, startOfMonth, subMonths } from "date-fns";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 import type { DateRange } from "react-day-picker";
+import {
+  createDateRange,
+  dateToPlainDate,
+  getLastNMonths,
+  plainDateRangeToDateRange,
+} from "@/lib/utils/temporal-dates";
 import { ExpenseCategoryChart } from "./expense-category-chart";
 import { ExpenseHeadlineNumbers } from "./expense-headline-numbers";
 import { OverviewControls } from "./overview-controls";
@@ -11,9 +16,8 @@ import { UploadDialog } from "./upload-dialog";
 
 // Get default date range (last 3 complete months)
 const getDefaultDateRange = (): DateRange => {
-  const threeMonthsAgo = subMonths(new Date(), 3);
-  const lastMonth = subMonths(new Date(), 1);
-  return { from: startOfMonth(threeMonthsAgo), to: endOfMonth(lastMonth) };
+  const plainDateRange = getLastNMonths(3);
+  return plainDateRangeToDateRange(plainDateRange);
 };
 
 export function Dashboard() {
@@ -27,17 +31,11 @@ export function Dashboard() {
     const toParam = searchParams.get("to");
 
     if (fromParam && toParam) {
-      // Parse dates in local timezone to avoid timezone shifts
-      const fromParts = fromParam.split("-").map(Number);
-      const toParts = toParam.split("-").map(Number);
+      // Use Temporal PlainDate for consistent parsing
+      const plainDateRange = createDateRange(fromParam, toParam);
 
-      if (fromParts.length === 3 && toParts.length === 3) {
-        const from = new Date(fromParts[0], fromParts[1] - 1, fromParts[2]);
-        const to = new Date(toParts[0], toParts[1] - 1, toParts[2]);
-
-        if (!Number.isNaN(from.getTime()) && !Number.isNaN(to.getTime())) {
-          return { from, to };
-        }
+      if (plainDateRange) {
+        return plainDateRangeToDateRange(plainDateRange);
       }
     }
 
@@ -49,11 +47,13 @@ export function Dashboard() {
       const params = new URLSearchParams(searchParams.toString());
 
       if (newDateRange?.from && newDateRange?.to) {
-        // Use local date formatting to avoid timezone issues
-        const fromStr = `${newDateRange.from.getFullYear()}-${String(newDateRange.from.getMonth() + 1).padStart(2, "0")}-${String(newDateRange.from.getDate()).padStart(2, "0")}`;
-        const toStr = `${newDateRange.to.getFullYear()}-${String(newDateRange.to.getMonth() + 1).padStart(2, "0")}-${String(newDateRange.to.getDate()).padStart(2, "0")}`;
-        params.set("from", fromStr);
-        params.set("to", toStr);
+        // Convert JS Date to PlainDate, then use PlainDate.toString() for robust formatting
+        const fromPlainDate = dateToPlainDate(newDateRange.from);
+        const toPlainDate = dateToPlainDate(newDateRange.to);
+
+        // Use PlainDate.toString() - always returns YYYY-MM-DD regardless of timezone
+        params.set("from", fromPlainDate.toString());
+        params.set("to", toPlainDate.toString());
       } else {
         params.delete("from");
         params.delete("to");

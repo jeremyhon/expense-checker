@@ -27,6 +27,8 @@ bun run db:push       # Push migrations to remote database (uses .env.local pass
 bun run reset        # Reset database and clear blob storage (uses scripts/reset-db.ts)
 
 # Testing
+bun test             # Run tests using Bun's built-in test runner
+bun test [pattern]   # Run specific test files (e.g., bun test temporal)
 bun run gen-pdf      # Generate test PDF with unique hash for upload testing
 bun run clean-temp   # Clear temp folder (removes generated test PDFs)
 
@@ -34,7 +36,15 @@ bun run clean-temp   # Clear temp folder (removes generated test PDFs)
 bun run log:clear    # Clear development server logs (dev.log)
 ```
 
-No test framework is currently configured.
+## Testing Framework
+
+This project uses **Bun's built-in test runner** for testing:
+
+- **Test files**: Co-located with source code using `.test.ts` suffix (e.g., `utils/temporal-dates.test.ts`)
+- **Test pattern**: Tests are placed alongside their source files, not in separate `__tests__/` directories
+- **Rationale**: Co-located tests improve discoverability, maintenance, and encourage keeping tests up-to-date
+- **Import style**: Use relative imports (`./module`) since tests are in the same directory
+- **API**: Uses Bun's native `describe`, `test`, and `expect` functions from `bun:test`
 
 ## Architecture Overview
 
@@ -59,6 +69,8 @@ Spendro is an AI-powered expense tracking application built with Next.js App Rou
 3. **Server Actions**: Uses Next.js server actions (`app/actions/upload.ts`) for file upload and AI processing, with proper authentication checks.
 
 4. **Database Security**: Implements Row Level Security (RLS) policies to ensure users can only access their own data.
+
+5. **Timezone-Safe Date Handling**: Uses Temporal PlainDate objects (`lib/utils/temporal-dates.ts`) for consistent date operations across timezones, avoiding Date constructor inconsistencies.
 
 ### Database Schema
 - `statements` - Stores uploaded PDF metadata with status tracking
