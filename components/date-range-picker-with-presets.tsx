@@ -1,8 +1,7 @@
 "use client";
 
-import { addDays, endOfMonth, format, startOfMonth, subMonths } from "date-fns";
+import { endOfMonth, format, startOfMonth, subMonths } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
-import * as React from "react";
 import type { DateRange } from "react-day-picker";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -29,34 +28,13 @@ export function DateRangePickerWithPresets({
   date?: DateRange;
   onDateChange?: (date: DateRange | undefined) => void;
 }) {
-  const [internalDate, setInternalDate] = React.useState<DateRange | undefined>(
-    date
-  );
-
   const handleDateChange = (newDate: DateRange | undefined) => {
-    setInternalDate(newDate);
     onDateChange?.(newDate);
   };
 
   const presets = [
     {
-      label: "Today",
-      getValue: () => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return { from: today, to: today };
-      },
-    },
-    {
-      label: "Last 7 days",
-      getValue: () => ({ from: addDays(new Date(), -6), to: new Date() }),
-    },
-    {
-      label: "Last 30 days",
-      getValue: () => ({ from: addDays(new Date(), -29), to: new Date() }),
-    },
-    {
-      label: "This month",
+      label: "Current month",
       getValue: () => ({
         from: startOfMonth(new Date()),
         to: endOfMonth(new Date()),
@@ -67,6 +45,25 @@ export function DateRangePickerWithPresets({
       getValue: () => {
         const lastMonth = subMonths(new Date(), 1);
         return { from: startOfMonth(lastMonth), to: endOfMonth(lastMonth) };
+      },
+    },
+    {
+      label: "Last 3 months",
+      getValue: () => {
+        const threeMonthsAgo = subMonths(new Date(), 3);
+        const lastMonth = subMonths(new Date(), 1);
+        return {
+          from: startOfMonth(threeMonthsAgo),
+          to: endOfMonth(lastMonth),
+        };
+      },
+    },
+    {
+      label: "Last 6 months",
+      getValue: () => {
+        const sixMonthsAgo = subMonths(new Date(), 6);
+        const lastMonth = subMonths(new Date(), 1);
+        return { from: startOfMonth(sixMonthsAgo), to: endOfMonth(lastMonth) };
       },
     },
   ];
@@ -80,18 +77,18 @@ export function DateRangePickerWithPresets({
             variant="outline"
             className={cn(
               "w-[260px] justify-start text-left font-normal",
-              !internalDate && "text-muted-foreground"
+              !date && "text-muted-foreground"
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {internalDate?.from ? (
-              internalDate.to ? (
+            {date?.from ? (
+              date.to ? (
                 <>
-                  {format(internalDate.from, "LLL dd, y")} -{" "}
-                  {format(internalDate.to, "LLL dd, y")}
+                  {format(date.from, "LLL dd, y")} -{" "}
+                  {format(date.to, "LLL dd, y")}
                 </>
               ) : (
-                format(internalDate.from, "LLL dd, y")
+                format(date.from, "LLL dd, y")
               )
             ) : (
               <span>Pick a date range</span>
@@ -125,8 +122,8 @@ export function DateRangePickerWithPresets({
             <Calendar
               initialFocus
               mode="range"
-              defaultMonth={internalDate?.from}
-              selected={internalDate}
+              defaultMonth={date?.from}
+              selected={date}
               onSelect={handleDateChange}
               numberOfMonths={2}
             />
