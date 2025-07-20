@@ -84,13 +84,14 @@ export function createAiExpenseSchema(validCategories: string[]) {
     date: z.string(),
     description: z.string(),
     merchant: z.string(),
-    category: z.string().transform((category) => {
-      // Map invalid categories to "Other"
-      return validCategories.includes(category) ? category : "Other";
-    }),
+    category: z
+      .string()
+      .refine((cat) => validCategories.includes(cat) || cat === "Other", {
+        message: "Invalid category, defaulting to Other",
+      })
+      .transform((cat) => (validCategories.includes(cat) ? cat : "Other")),
     original_amount: z.number(),
     original_currency: z.string(),
-    amount_sgd: z.number().optional(),
   });
 }
 
@@ -136,7 +137,6 @@ export interface AIExpenseInput {
   category: string;
   original_amount: number;
   original_currency: string;
-  amount_sgd?: number;
 }
 
 // Database insert type

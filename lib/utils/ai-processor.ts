@@ -28,25 +28,20 @@ WHAT TO EXCLUDE:
 - Refunds or reversals (unless they represent a net expense)
 - Duplicate transactions or pending transactions
 
-EXTRACTION RULES:
-1. Date: Use YYYY-MM-DD format, extract the posted/cleared date (not pending)
-2. Amount: Always positive numbers, use the debited amount
-3. Currency: For SGD transactions, set both original_amount and amount_sgd to the same value
-4. For foreign transactions: Extract both amounts only if both are clearly shown on the statement
-5. Merchant: Clean up names by removing unnecessary codes, reference numbers, and extra whitespace
-6. Description: Keep concise but informative (e.g., "Coffee purchase" not "VISA PURCHASE 123456")
-
-CATEGORIZATION RULES:
-Use the user's custom categories and categorize expenses appropriately. If uncertain, use "Other".
+EXTRACTION FORMAT:
+1. date: Use YYYY-MM-DD format, extract the posted/cleared date (not pending)
+2. description: Keep concise but informative (e.g., "Coffee purchase" not "VISA PURCHASE 123456"),
+3. merchant: Clean up names by removing unnecessary codes, reference numbers, and extra whitespace
+4. category: Use one of these categories: ${categoriesText}; if uncertain, use "Other"
+5. original_amount: The amount of the transaction before any currency conversion
+6. original_currency: The original 3-letter currency code (e.g., SGD, USD). If not shown, use SGD.
 
 QUALITY CHECKS:
 - Verify each transaction is a genuine expense (money leaving the account)
 - Ensure dates are valid and properly formatted
 - Check that amounts are reasonable and positive
 - Confirm currency codes are valid 3-letter codes (SGD, USD, EUR, etc.)
-- Validate categories match the available options exactly
-
-Available categories: ${categoriesText}`;
+- Validate categories match the available options exactly`;
 }
 
 /**
@@ -62,31 +57,36 @@ export async function* extractExpensesFromPdf(
   const base64Pdf = fileBuffer.toString("base64");
   const prompt = generateExpenseExtractionPrompt(userCategories);
 
-  const { elementStream } = streamObject({
-    model: google("gemini-2.5-flash"),
-    output: "array",
-    schema: createAiExpenseSchema(userCategories),
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: prompt,
-          },
-          {
-            type: "file",
-            data: base64Pdf,
-            mimeType: "application/pdf",
-          },
-        ],
-      },
-    ],
-  });
+  try {
+    const { elementStream } = streamObject({
+      model: google("gemini-2.5-flash"),
+      output: "array",
+      schema: createAiExpenseSchema(userCategories),
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: prompt,
+            },
+            {
+              type: "file",
+              data: base64Pdf,
+              mimeType: "application/pdf",
+            },
+          ],
+        },
+      ],
+    });
 
-  for await (const expense of elementStream) {
-    if (expense) {
-      yield expense;
+    for await (const element of elementStream) {
+      if (element) {
+        yield element as AIExpenseInput;
+      }
     }
+  } catch (error) {
+    console.error("❌ Error in AI extraction:", error);
+    throw error;
   }
 }
