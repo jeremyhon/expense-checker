@@ -1,30 +1,61 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, Pencil, Trash2 } from "lucide-react";
+import { ArrowUpDown, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { DisplayExpenseWithDuplicate } from "@/lib/types/expense";
 
 interface ExpenseTableColumnsProps {
   onEdit: (expense: DisplayExpenseWithDuplicate) => void;
-  onDelete: (expense: DisplayExpenseWithDuplicate) => void;
 }
 
 export const createExpenseColumns = ({
   onEdit,
-  onDelete,
 }: ExpenseTableColumnsProps): ColumnDef<DisplayExpenseWithDuplicate>[] => [
+  {
+    id: "select",
+    header: ({ table }) => (
+      <div className="flex items-center">
+        <Checkbox
+          checked={
+            table.getIsAllPageRowsSelected() ||
+            (table.getIsSomePageRowsSelected() && "indeterminate")
+          }
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+        />
+      </div>
+    ),
+    cell: ({ row }) => (
+      <div className="flex items-center">
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+        />
+      </div>
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
   {
     accessorKey: "date",
     header: ({ column }) => (
       <Button
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="h-auto p-0 font-medium"
+        className="h-auto p-0 font-medium flex items-center gap-2"
       >
         Date
-        <ArrowUpDown className="ml-2 h-4 w-4" />
+        <ArrowUpDown className="h-4 w-4" />
       </Button>
     ),
     cell: ({ row }) => {
@@ -49,18 +80,28 @@ export const createExpenseColumns = ({
       <Button
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="h-auto p-0 font-medium"
+        className="h-auto p-0 font-medium flex items-center gap-2"
       >
         Merchant
-        <ArrowUpDown className="ml-2 h-4 w-4" />
+        <ArrowUpDown className="h-4 w-4" />
       </Button>
     ),
     cell: ({ row }) => {
       const expense = row.original;
+      const merchant = row.getValue("merchant") as string;
       return (
-        <div className="hidden sm:table-cell text-muted-foreground">
+        <div className="hidden sm:table-cell text-muted-foreground text-xs">
           <div className="flex items-center gap-2">
-            {row.getValue("merchant")}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="truncate cursor-help">{merchant}</div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs">{merchant}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             {expense.isDuplicate && (
               <Badge variant="secondary" className="text-xs sm:hidden">
                 Duplicate
@@ -77,10 +118,10 @@ export const createExpenseColumns = ({
       <Button
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="h-auto p-0 font-medium"
+        className="h-auto p-0 font-medium flex items-center gap-2"
       >
         Category
-        <ArrowUpDown className="ml-2 h-4 w-4" />
+        <ArrowUpDown className="h-4 w-4" />
       </Button>
     ),
     cell: ({ row }) => (
@@ -93,10 +134,11 @@ export const createExpenseColumns = ({
       <Button
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="h-auto p-0 font-medium text-right"
+        className="h-auto p-0 font-medium text-right flex items-center gap-2 justify-end"
       >
-        Amount (SGD)
-        <ArrowUpDown className="ml-2 h-4 w-4" />
+        <span className="hidden lg:inline">Amount (SGD)</span>
+        <span className="lg:hidden">Amount</span>
+        <ArrowUpDown className="h-4 w-4" />
       </Button>
     ),
     cell: ({ row }) => {
@@ -117,10 +159,10 @@ export const createExpenseColumns = ({
       <Button
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="h-auto p-0 font-medium text-right"
+        className="h-auto p-0 font-medium text-right flex items-center gap-2 justify-end"
       >
         Foreign Currency
-        <ArrowUpDown className="ml-2 h-4 w-4" />
+        <ArrowUpDown className="h-4 w-4" />
       </Button>
     ),
     cell: ({ row }) => {
@@ -146,17 +188,29 @@ export const createExpenseColumns = ({
       <Button
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="h-auto p-0 font-medium"
+        className="h-auto p-0 font-medium flex items-center gap-2"
       >
         Description
-        <ArrowUpDown className="ml-2 h-4 w-4" />
+        <ArrowUpDown className="h-4 w-4" />
       </Button>
     ),
-    cell: ({ row }) => (
-      <div className="font-medium hidden lg:table-cell">
-        {row.getValue("description")}
-      </div>
-    ),
+    cell: ({ row }) => {
+      const description = row.getValue("description") as string;
+      return (
+        <div className="hidden lg:block text-muted-foreground text-xs w-full">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="truncate cursor-help">{description}</div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="max-w-xs">{description}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      );
+    },
   },
   {
     accessorKey: "createdAt",
@@ -164,10 +218,10 @@ export const createExpenseColumns = ({
       <Button
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="h-auto p-0 font-medium"
+        className="h-auto p-0 font-medium flex items-center gap-2"
       >
         Created
-        <ArrowUpDown className="ml-2 h-4 w-4" />
+        <ArrowUpDown className="h-4 w-4" />
       </Button>
     ),
     cell: ({ row }) => {
@@ -189,27 +243,18 @@ export const createExpenseColumns = ({
     cell: ({ row }) => {
       const expense = row.original;
       return (
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => onEdit(expense)}
-            className="h-8 w-8 p-0"
-          >
-            <Pencil className="h-4 w-4" />
-            <span className="sr-only">Edit expense</span>
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => onDelete(expense)}
-            className="h-8 w-8 p-0"
-          >
-            <Trash2 className="h-4 w-4" />
-            <span className="sr-only">Delete expense</span>
-          </Button>
-        </div>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => onEdit(expense)}
+          className="h-8 w-8 p-0"
+        >
+          <Pencil className="h-4 w-4" />
+          <span className="sr-only">Edit expense</span>
+        </Button>
       );
     },
+    enableSorting: false,
+    enableHiding: false,
   },
 ];
