@@ -246,9 +246,10 @@ export async function getMonthlyExpensesByCategory(dateRange?: {
 
   // Add date filtering if dateRange is provided
   if (dateRange?.from && dateRange?.to) {
-    query = query
-      .gte("date", dateRange.from.toISOString())
-      .lte("date", dateRange.to.toISOString());
+    // Format dates as YYYY-MM-DD to avoid timezone issues
+    const fromStr = `${dateRange.from.getFullYear()}-${String(dateRange.from.getMonth() + 1).padStart(2, "0")}-${String(dateRange.from.getDate()).padStart(2, "0")}`;
+    const toStr = `${dateRange.to.getFullYear()}-${String(dateRange.to.getMonth() + 1).padStart(2, "0")}-${String(dateRange.to.getDate()).padStart(2, "0")}`;
+    query = query.gte("date", fromStr).lte("date", toStr);
   }
 
   const { data: expenses, error } = await query.order("date", {
@@ -340,9 +341,10 @@ export async function getExpenseHeadlineNumbers(dateRange?: {
 
   // Add date filtering if dateRange is provided
   if (dateRange?.from && dateRange?.to) {
-    query = query
-      .gte("date", dateRange.from.toISOString())
-      .lte("date", dateRange.to.toISOString());
+    // Format dates as YYYY-MM-DD to avoid timezone issues
+    const fromStr = `${dateRange.from.getFullYear()}-${String(dateRange.from.getMonth() + 1).padStart(2, "0")}-${String(dateRange.from.getDate()).padStart(2, "0")}`;
+    const toStr = `${dateRange.to.getFullYear()}-${String(dateRange.to.getMonth() + 1).padStart(2, "0")}-${String(dateRange.to.getDate()).padStart(2, "0")}`;
+    query = query.gte("date", fromStr).lte("date", toStr);
   }
 
   const { data: expenses, error } = await query.order("date", {
@@ -387,7 +389,32 @@ export async function getExpenseHeadlineNumbers(dateRange?: {
     totalSpending += amount;
   });
 
-  const monthCount = monthsSet.size || 1; // Avoid division by zero
+  // Calculate month count based on date range if provided, otherwise use actual expense months
+  let monthCount: number;
+  if (dateRange?.from && dateRange?.to) {
+    // Calculate months in the specified date range
+    const startDate = new Date(
+      dateRange.from.getFullYear(),
+      dateRange.from.getMonth(),
+      1
+    );
+    const endDate = new Date(
+      dateRange.to.getFullYear(),
+      dateRange.to.getMonth(),
+      1
+    );
+
+    let months = 0;
+    const current = new Date(startDate);
+    while (current <= endDate) {
+      months++;
+      current.setMonth(current.getMonth() + 1);
+    }
+    monthCount = months;
+  } else {
+    // Use actual expense months if no date range specified
+    monthCount = monthsSet.size || 1;
+  }
 
   // Calculate category averages
   const categoryAverages: Record<string, number> = {};
