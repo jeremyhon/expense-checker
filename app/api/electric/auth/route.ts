@@ -1,5 +1,21 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { env } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
+
+// Handle CORS preflight requests
+export async function OPTIONS(_request: NextRequest) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "*",
+      "Access-Control-Expose-Headers":
+        "electric-offset, electric-handle, electric-schema, *",
+      "Access-Control-Max-Age": "86400",
+    },
+  });
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,49 +30,35 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get source credentials
-    const sourceId = process.env.ELECTRIC_SOURCE_ID;
-    const sourceSecret = process.env.ELECTRIC_SOURCE_SECRET;
-
-    if (!sourceId || !sourceSecret) {
-      console.error("Missing Electric SQL source credentials");
-      return NextResponse.json(
-        { error: "Server configuration error" },
-        { status: 500 }
-      );
-    }
+    // Get source credentials from validated T3 env
+    const sourceId = env.ELECTRIC_SOURCE_ID;
+    const sourceSecret = env.ELECTRIC_SOURCE_SECRET;
 
     // Build Electric SQL Cloud URL with source credentials
     const url = new URL(request.url);
     const electricUrl = new URL("https://api.electric-sql.cloud/v1/shape");
 
-    // Copy all query parameters
-    for (const [key, value] of url.searchParams.entries()) {
-      electricUrl.searchParams.set(key, value);
-    }
-
-    // Add source credentials
+    // Add source credentials first
     electricUrl.searchParams.set("source_id", sourceId);
     electricUrl.searchParams.set("source_secret", sourceSecret);
 
-    // SECURITY: Automatically inject user filtering into ALL shapes
-    // This ensures users can only access their own data, regardless of client request
-    const existingWhere = electricUrl.searchParams.get("where");
+    // Handle parameters more carefully - Electric SQL expects array format for params
+    const existingWhere = url.searchParams.get("where");
+    const params: string[] = [];
 
-    // Get existing params or create empty array
-    const existingParams = electricUrl.searchParams.get("params");
-    let params: string[] = [];
-
-    if (existingParams) {
-      try {
-        params = JSON.parse(existingParams);
-      } catch {
-        // If params is not JSON, treat as single parameter
-        params = [existingParams];
+    // Collect all params[N] query parameters
+    for (const [key, value] of url.searchParams.entries()) {
+      if (key.startsWith("params[")) {
+        const index = Number.parseInt(key.slice(7, -1)); // Extract number from params[N]
+        params[index - 1] = value; // Electric SQL uses 1-based indexing, array uses 0-based
+      } else if (key !== "where" && key !== "params") {
+        // Copy other parameters (table, columns, offset, etc.)
+        electricUrl.searchParams.set(key, value);
       }
     }
 
-    // Add user ID to parameters array
+    // SECURITY: Automatically inject user filtering into ALL shapes
+    // This ensures users can only access their own data, regardless of client request
     params.push(user.id);
     const userParamIndex = params.length;
 
@@ -69,37 +71,77 @@ export async function GET(request: NextRequest) {
     }
 
     electricUrl.searchParams.set("where", secureWhere);
-    electricUrl.searchParams.set("params", JSON.stringify(params));
+
+    // Set params using Electric SQL's array format
+    params.forEach((param, index) => {
+      electricUrl.searchParams.set(`params[${index + 1}]`, param);
+    });
 
     // Forward request to Electric SQL Cloud
-    const response = await fetch(electricUrl.toString(), {
-      method: request.method,
+    const newRequest = new Request(electricUrl.toString(), {
+      method: "GET",
       headers: {
         Accept: request.headers.get("Accept") || "application/json",
         "User-Agent": "Spendro/1.0",
       },
     });
 
-    if (!response.ok) {
+    // When proxying long-polling requests, content-encoding & content-length are added
+    // erroneously (saying the body is gzipped when it's not) so we'll just remove
+    // them to avoid content decoding errors in the browser.
+    //
+    // Similar-ish problem to https://github.com/wintercg/fetch/issues/23
+    let resp = await fetch(newRequest);
+
+    if (!resp.ok) {
+      const errorText = await resp.text();
       console.error(
         "Electric SQL API error:",
-        response.status,
-        response.statusText
+        resp.status,
+        resp.statusText,
+        errorText
       );
       return NextResponse.json(
-        { error: "Electric SQL API error" },
-        { status: response.status }
+        { error: "Electric SQL API error", details: errorText },
+        { status: resp.status }
       );
     }
 
-    // Stream response back to client
-    return new NextResponse(response.body, {
-      status: response.status,
-      headers: {
-        "Content-Type":
-          response.headers.get("Content-Type") || "application/json",
-        "Cache-Control": response.headers.get("Cache-Control") || "no-cache",
-      },
+    if (resp.headers.get("content-encoding")) {
+      const headers = new Headers(resp.headers);
+      headers.delete("content-encoding");
+      headers.delete("content-length");
+      resp = new Response(resp.body, {
+        status: resp.status,
+        statusText: resp.statusText,
+        headers,
+      });
+    }
+
+    // Ensure CORS headers are set for client access to Electric SQL headers
+    const headers = new Headers(resp.headers);
+    headers.set("Access-Control-Allow-Origin", "*");
+    headers.set("Access-Control-Allow-Headers", "*");
+
+    // Keep the Electric SQL's original expose headers, but ensure all Electric headers are exposed
+    const originalExposeHeaders =
+      headers.get("access-control-expose-headers") || "";
+    headers.set(
+      "Access-Control-Expose-Headers",
+      originalExposeHeaders +
+        (originalExposeHeaders ? "," : "") +
+        "cache-control,etag,*"
+    );
+
+    // Prevent caching of Electric SQL responses during development
+    headers.set("Cache-Control", "no-cache, no-store, must-revalidate");
+    headers.set("Pragma", "no-cache");
+    headers.set("Expires", "0");
+
+    return new Response(resp.body, {
+      status: resp.status,
+      statusText: resp.statusText,
+      headers,
     });
   } catch (error) {
     console.error("Electric auth proxy error:", error);

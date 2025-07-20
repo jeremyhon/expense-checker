@@ -8,7 +8,14 @@ export class AuthenticatedElectricClient {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = process.env.NEXT_PUBLIC_ELECTRIC_URL || "/api/electric/auth";
+    // Use the auth proxy endpoint with proper URL construction for client-side
+    if (typeof window !== "undefined") {
+      // Client-side: construct full URL from current origin
+      this.baseUrl = `${window.location.origin}/api/electric/auth`;
+    } else {
+      // Server-side: use relative path (though this client is primarily for client-side use)
+      this.baseUrl = "/api/electric/auth";
+    }
   }
 
   /**
