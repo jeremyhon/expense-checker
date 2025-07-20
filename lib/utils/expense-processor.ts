@@ -46,7 +46,7 @@ async function convertExpenseToRecord(
     expense.date
   );
 
-  const amountSgd = expense.amount_sgd || currencyResult.convertedAmount;
+  const amountSgd = currencyResult.convertedAmount;
   const lineHash = createExpenseHash(
     expense.date,
     expense.description,
@@ -164,7 +164,7 @@ export async function processPdfExpenses(
     }
 
     console.log(
-      `Successfully processed ${expenseCount} expenses from statement ${statementId}`
+      `Processed ${expenseCount} expenses for statement ${statementId}`
     );
 
     // Mark statement as completed

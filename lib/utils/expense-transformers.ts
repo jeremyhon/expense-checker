@@ -52,7 +52,7 @@ export function transformAIInputToInsert(
     date: aiInput.date,
     description: aiInput.description,
     merchant: aiInput.merchant,
-    amount_sgd: aiInput.amount_sgd || convertedAmountSgd,
+    amount_sgd: convertedAmountSgd,
     original_amount: aiInput.original_amount,
     original_currency: aiInput.original_currency,
     currency: aiInput.original_currency,
@@ -74,12 +74,12 @@ export function validateExpenseInsert(data: unknown): ExpenseInsertData {
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error("Expense insert validation failed:", {
-        errors: error.errors,
+        errors: error.issues,
         data,
       });
       throw new Error(
-        `Invalid expense insert data: ${error.errors
-          .map((e) => `${e.path.join(".")}: ${e.message}`)
+        `Invalid expense insert data: ${error.issues
+          .map((e: z.ZodIssue) => `${e.path.join(".")}: ${e.message}`)
           .join(", ")}`
       );
     }
