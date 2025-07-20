@@ -1,46 +1,53 @@
 "use client";
 
 import { useState } from "react";
-import type { DateRange } from "react-day-picker";
+import { toast } from "sonner";
+import { bulkDeleteExpenses, updateExpense } from "@/app/actions/expense";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useExpenses } from "@/hooks/use-expenses";
+import {
+  type ExpenseFilters,
+  useElectricExpenses,
+} from "@/hooks/use-electric-expenses";
 import type { DisplayExpenseWithDuplicate } from "@/lib/types/expense";
-import { DeleteExpenseDialog } from "./delete-expense-dialog";
 import { EditExpenseDialog } from "./edit-expense-dialog";
-import { ExpenseControls } from "./expense-controls";
-import { ExpensesTable } from "./expenses-table";
+import { ExpensesTableVirtualized } from "./expenses-table-virtualized";
 
 export function ExpensesPage() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [fastDeleteEnabled, setFastDeleteEnabled] = useState(false);
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [editingExpense, setEditingExpense] =
     useState<DisplayExpenseWithDuplicate | null>(null);
-  const [deletingExpense, setDeletingExpense] =
-    useState<DisplayExpenseWithDuplicate | null>(null);
+  const [filters, setFilters] = useState<ExpenseFilters>({});
 
-  const { expenses, isLoading, error, updateExpense, deleteExpense } =
-    useExpenses();
+  const { expenses, loading, error } = useElectricExpenses({
+    filters,
+    autoSubscribe: true,
+    loadRecentOnly: true,
+    monthsBack: 6,
+  });
 
   const handleEdit = (expense: DisplayExpenseWithDuplicate) => {
     setEditingExpense(expense);
   };
 
-  const handleDelete = async (expense: DisplayExpenseWithDuplicate) => {
-    if (fastDeleteEnabled) {
-      // Fast delete - no confirmation dialog
-      await deleteExpense(expense.id);
-    } else {
-      // Normal delete - show confirmation dialog
-      setDeletingExpense(expense);
+  const handleBulkDelete = async (expenseIds: string[]) => {
+    try {
+      const result = await bulkDeleteExpenses(expenseIds);
+      if (result.success) {
+        toast.success(
+          `Successfully deleted ${result.deletedCount} expense${result.deletedCount === 1 ? "" : "s"}`
+        );
+      } else {
+        toast.error(result.error || "Failed to delete expenses");
+      }
+    } catch (error) {
+      console.error("Error deleting expenses:", error);
+      toast.error("Failed to delete expenses");
     }
   };
 
@@ -55,19 +62,21 @@ export function ExpensesPage() {
   }) => {
     if (!editingExpense) return { error: "No expense selected" };
 
-    const result = await updateExpense(editingExpense.id, data);
-    if (result.success) {
-      setEditingExpense(null);
+    try {
+      const result = await updateExpense(editingExpense.id, data);
+      if (result.success) {
+        setEditingExpense(null);
+        toast.success("Expense updated successfully");
+      } else {
+        toast.error(result.error || "Failed to update expense");
+      }
+      return result;
+    } catch (error) {
+      console.error("Error updating expense:", error);
+      const errorMessage = "Failed to update expense";
+      toast.error(errorMessage);
+      return { error: errorMessage };
     }
-    return result;
-  };
-
-  const handleDeleteExpense = async (expenseId: string) => {
-    const result = await deleteExpense(expenseId);
-    if (result.success) {
-      setDeletingExpense(null);
-    }
-    return result;
   };
 
   if (error) {
@@ -84,53 +93,26 @@ export function ExpensesPage() {
   }
 
   return (
-    <div className="flex flex-col">
-      <ExpenseControls
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        dateRange={dateRange}
-        onDateRangeChange={setDateRange}
-        fastDeleteEnabled={fastDeleteEnabled}
-        onFastDeleteChange={setFastDeleteEnabled}
-      />
-
-      <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Expenses</CardTitle>
-            <CardDescription>
-              Manage your expenses and view their details.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    Loading expenses...
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <ExpensesTable
-                expenses={expenses}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                globalFilter={searchQuery}
-                dateRange={dateRange}
-              />
-            )}
-          </CardContent>
-          <CardFooter>
-            <div className="text-xs text-muted-foreground">
-              Showing <strong>1-{expenses.length}</strong> of{" "}
-              <strong>{expenses.length}</strong> expenses
-              {searchQuery && <span className="ml-2">(filtered)</span>}
-            </div>
-          </CardFooter>
-        </Card>
-      </main>
+    <div className="flex flex-col h-full">
+      <Card className="flex-1 flex flex-col overflow-hidden">
+        <CardHeader className="flex-shrink-0">
+          <CardTitle>Expenses</CardTitle>
+          <CardDescription>
+            Manage your expenses with advanced filtering, selection, and
+            real-time sync.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex-1 flex flex-col overflow-hidden">
+          <ExpensesTableVirtualized
+            expenses={expenses}
+            onEdit={handleEdit}
+            onBulkDelete={handleBulkDelete}
+            filters={filters}
+            onFiltersChange={setFilters}
+            loading={loading}
+          />
+        </CardContent>
+      </Card>
 
       {/* Edit Dialog */}
       {editingExpense && (
@@ -138,15 +120,6 @@ export function ExpensesPage() {
           expense={editingExpense}
           onSave={handleUpdateExpense}
           onClose={() => setEditingExpense(null)}
-        />
-      )}
-
-      {/* Delete Dialog */}
-      {deletingExpense && !fastDeleteEnabled && (
-        <DeleteExpenseDialog
-          expense={deletingExpense}
-          onDelete={handleDeleteExpense}
-          onClose={() => setDeletingExpense(null)}
         />
       )}
     </div>

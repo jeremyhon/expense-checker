@@ -40,9 +40,11 @@ export default async function RootLayout({
         >
           <AuthProvider>
             <AuthGuard>
-              <div className="min-h-screen w-full bg-muted/40">
+              <div className="h-screen w-full bg-muted/40 flex flex-col">
                 <TopNavigation />
-                <main className="flex flex-1 flex-col">{children}</main>
+                <main className="flex-1 flex flex-col p-4 sm:px-6 sm:py-0 md:gap-8 overflow-hidden">
+                  {children}
+                </main>
               </div>
             </AuthGuard>
           </AuthProvider>
