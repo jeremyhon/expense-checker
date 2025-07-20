@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import type React from "react";
+import { Temporal } from "temporal-polyfill";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
@@ -22,6 +23,12 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Ensure Temporal polyfill is available globally
+  if (typeof globalThis !== "undefined") {
+    (globalThis as typeof globalThis & { Temporal: typeof Temporal }).Temporal =
+      Temporal;
+  }
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
