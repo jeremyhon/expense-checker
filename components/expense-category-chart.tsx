@@ -189,13 +189,7 @@ export function ExpenseCategoryChart({ dateRange }: ExpenseCategoryChartProps) {
               axisLine={false}
               tickFormatter={(value) => `$${value}`}
             />
-            <ChartTooltip
-              content={
-                <ChartTooltipContent
-                  formatter={(value) => `$${Number(value).toFixed(2)}`}
-                />
-              }
-            />
+            <ChartTooltip content={<ChartTooltipContent />} />
             {categories.map((category) => {
               const isTotal = category === "Total";
               const strokeColor =
