@@ -57,8 +57,10 @@ Spendro is an AI-powered expense tracking application built with Next.js App Rou
 - **Biome** for linting and formatting (not ESLint/Prettier)
 - **Tailwind CSS** with shadcn/ui components
 - **Supabase** for authentication, database, and real-time updates
+- **ElectricSQL** for high-performance real-time data synchronization
 - **Vercel Blob** for PDF file storage
 - **Google Gemini AI** (via AI SDK) for PDF expense extraction
+- **@tanstack/react-virtual** for virtualized table rendering
 
 ### Key Architecture Patterns
 
@@ -71,6 +73,10 @@ Spendro is an AI-powered expense tracking application built with Next.js App Rou
 4. **Database Security**: Implements Row Level Security (RLS) policies to ensure users can only access their own data.
 
 5. **Timezone-Safe Date Handling**: Uses Temporal PlainDate objects (`lib/utils/temporal-dates.ts`) for consistent date operations across timezones, avoiding Date constructor inconsistencies.
+
+6. **ElectricSQL Real-time Sync**: Implements ElectricSQL for high-performance data synchronization with shape-based filtering and client-side operations on cached data.
+
+7. **Virtual Scrolling**: Uses @tanstack/react-virtual for rendering large datasets efficiently, handling thousands of expense records with smooth performance.
 
 ### Database Schema
 - `statements` - Stores uploaded PDF metadata with status tracking
@@ -91,10 +97,24 @@ Spendro is an AI-powered expense tracking application built with Next.js App Rou
 2. **Authentication**: Uses Supabase Auth with client/server patterns:
    - `lib/supabase/client.ts` for browser operations
    - `lib/supabase/server.ts` for server-side operations
+   - `app/api/electric/auth/route.ts` for ElectricSQL authentication proxy
 
-3. **Component Styling**: Uses `cn()` utility from `lib/utils.ts` for conditional className merging with Tailwind CSS.
+3. **ElectricSQL Data Management**:
+   - `lib/electric/client.ts` - ElectricSQL client configuration and URL handling
+   - `lib/electric/shapes.ts` - Shape registry for filtered data synchronization
+   - `hooks/use-electric-expenses.ts` - Real-time expense data hooks with client-side filtering
+   - Progressive loading: recent expenses load first, historical data on-demand
+   - Client-side operations on cached data for instant UI responses
 
-4. **File Structure**:
+4. **Component Architecture**:
+   - `components/expenses-table-virtualized.tsx` - High-performance virtual scrolling table
+   - `components/expense-bulk-actions.tsx` - Bulk selection and operations UI
+   - `components/expense-column-filters.tsx` - Advanced filtering controls
+   - `components/expense-column-visibility.tsx` - Column show/hide management
+   - `components/expense-inline-filters.tsx` - Inline filter components
+   - Uses `cn()` utility from `lib/utils.ts` for conditional className merging
+
+5. **File Structure**:
    - `app/` - Next.js App Router pages and layouts
    - `components/` - Reusable UI components (shadcn/ui + custom)
    - `lib/` - Utilities and database clients
@@ -109,11 +129,127 @@ Spendro is an AI-powered expense tracking application built with Next.js App Rou
 - Trailing commas in ES5 mode
 - Self-closing JSX elements enforced
 
-### Environment Variables Required
+### Environment Variables & Configuration
+
+**T3 Env Validation**: All environment variables are managed through `lib/env.ts` using T3 env for type safety and validation. The application will fail fast with clear error messages if required variables are missing.
+
+**Current Environment Variables:**
 - `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anonymous key
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anonymous key  
 - `GOOGLE_GENERATIVE_AI_API_KEY` - Google AI API key for Gemini
 - `BLOB_READ_WRITE_TOKEN` - Vercel Blob storage token
+- `ELECTRIC_SOURCE_ID` - ElectricSQL source ID for real-time sync
+- `ELECTRIC_SOURCE_SECRET` - ElectricSQL source secret for authentication
+
+**Adding New Environment Variables:**
+When adding new environment variables, always update `lib/env.ts` to include proper validation:
+1. Add to appropriate section (`server` for server-side, `client` for client-side)
+2. Define Zod validation schema
+3. Add to `runtimeEnv` mapping
+4. The application will enforce these variables at startup
+
+## ElectricSQL Integration
+
+Spendro uses ElectricSQL for high-performance real-time data synchronization, providing instant UI responses and scalable performance for large datasets.
+
+### Key Benefits
+- **Real-time Sync**: Changes appear instantly across all connected clients
+- **Client-side Operations**: Filtering, sorting, and searching on cached data with zero latency
+- **Progressive Loading**: Recent expenses load first, historical data loads on-demand
+- **Scalable Performance**: Handles thousands of records with smooth virtual scrolling
+- **Offline-first**: Works offline with automatic conflict resolution when reconnected
+
+### Architecture Components
+
+**ElectricSQL Client** (`lib/electric/client.ts`):
+```typescript
+// Configured with authentication proxy and proper URL handling
+const electricClient = createElectricClient({
+  url: constructElectricUrl(),
+  // Uses /api/electric/auth for secure user-filtered access
+});
+```
+
+**Shape Registry** (`lib/electric/shapes.ts`):
+```typescript
+// Predefined shapes for efficient data filtering
+SHAPE_REGISTRY.recentExpenses(monthsBack, filters)  // Recent data
+SHAPE_REGISTRY.historicalExpenses(from, to, filters)  // Historical data
+```
+
+**Real-time Hooks** (`hooks/use-electric-expenses.ts`):
+```typescript
+// Progressive loading with client-side filtering
+const { expenses, loading, refetch } = useElectricExpenses({
+  filters: { categories: ['Dining'], searchText: 'coffee' },
+  autoSubscribe: true,
+  monthsBack: 6
+});
+```
+
+**Authentication Proxy** (`app/api/electric/auth/route.ts`):
+- Automatically injects `user_id` filtering for secure multi-tenant access
+- Validates Supabase JWT tokens
+- Proxies authenticated requests to ElectricSQL service
+
+### Usage Patterns
+
+**Basic Expense Loading**:
+```typescript
+// Load recent expenses with real-time updates
+const { expenses, loading } = useRecentElectricExpenses(3); // 3 months back
+```
+
+**Advanced Filtering**:
+```typescript
+// Client-side filtering with instant response
+const { expenses } = useElectricExpenses({
+  filters: {
+    categories: ['Dining', 'Travel'],
+    amountRange: { min: 10, max: 500 },
+    searchText: 'restaurant',
+    dateRange: { start: '2024-01-01', end: '2024-12-31' }
+  }
+});
+```
+
+**Progressive Data Loading**:
+```typescript
+// Load historical data on-demand
+const { loadHistoricalData, hasHistoricalData } = useElectricExpenses();
+
+// User clicks "Load More" -> instant loading from ElectricSQL cache
+loadHistoricalData(); 
+```
+
+### Performance Characteristics
+
+- **Throughput**: ~5,000 row changes/second
+- **Filtering**: Millions of `field = constant` where clauses evaluated efficiently
+- **Memory**: Only visible rows rendered via virtual scrolling
+- **Bandwidth**: Efficient subset synchronization, not full table sync
+- **Latency**: Client-side operations with zero network round-trips
+
+### Security Model
+
+ElectricSQL implements **server-side security** through the authentication proxy:
+
+```typescript
+// All queries automatically filtered by user_id on the server
+// Example: "SELECT * FROM expenses WHERE category = 'Dining'"
+// Becomes: "SELECT * FROM expenses WHERE category = 'Dining' AND user_id = $user_id"
+```
+
+This ensures users can only access their own data, regardless of client-side queries.
+
+### Development Setup
+
+1. **Environment Variables**: Set `ELECTRIC_SOURCE_ID` and `ELECTRIC_SOURCE_SECRET`
+2. **Shape Registration**: Define data shapes in `lib/electric/shapes.ts`
+3. **Hook Usage**: Use `useElectricExpenses()` for real-time data management
+4. **Client Filtering**: All filtering happens client-side for instant response
+
+The T3 env validation ensures ElectricSQL credentials are present, failing fast with clear error messages if misconfigured.
 
 ## Development Workflow
 
