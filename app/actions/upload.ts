@@ -40,16 +40,26 @@ export async function uploadStatement(
   }
 
   const file = formData.get("file") as File;
-  const { fileBuffer, checksum } = validation;
+  const { fileBuffer } = validation;
+  // Use environment variable to control duplicate detection
+  const disableDuplicateDetection =
+    process.env.DISABLE_DUPLICATE_DETECTION === "true";
+
+  const checksum = disableDuplicateDetection
+    ? Math.random().toString(36).substring(2, 15) +
+      Math.random().toString(36).substring(2, 15)
+    : validation.checksum;
 
   try {
-    // Check for duplicate statements (currently disabled)
-    const isDuplicate = await checkDuplicateStatement(user.id, checksum);
-    if (isDuplicate) {
-      return {
-        success: false,
-        message: `Duplicate: '${file.name}' has already been uploaded.`,
-      };
+    // Check for duplicate statements (controlled by environment variable)
+    if (!disableDuplicateDetection) {
+      const isDuplicate = await checkDuplicateStatement(user.id, checksum);
+      if (isDuplicate) {
+        return {
+          success: false,
+          message: `Duplicate: '${file.name}' has already been uploaded.`,
+        };
+      }
     }
 
     // Upload file to blob storage
