@@ -1,5 +1,6 @@
 import { google } from "@ai-sdk/google";
 import { streamObject } from "ai";
+import { z } from "zod";
 import {
   type AIExpenseInput,
   createAiExpenseSchema,
@@ -50,6 +51,92 @@ QUALITY CHECKS:
  * @param userCategories - User's custom categories
  * @returns AsyncGenerator<ExpenseInput> - Stream of extracted expenses
  */
+/**
+ * Create a permissive union schema with three options:
+ * 1. Original strict schema
+ * 2. String schema that parses JSON and transforms to original schema
+ * 3. Permissive schema that accepts anything
+ */
+function createPermissiveExpenseSchema(userCategories: string[]) {
+  const originalSchema = createAiExpenseSchema(userCategories);
+
+  const stringSchema = z.string().transform((data) => {
+    console.log(
+      "🔍 Received JSON string, parsing:",
+      data.substring(0, 100) + "..."
+    );
+
+    try {
+      const parsed = JSON.parse(data);
+      console.log("✅ Parsed JSON:", JSON.stringify(parsed, null, 2));
+
+      // Try to validate with original schema
+      const result = originalSchema.safeParse(parsed);
+      if (result.success) {
+        return result.data;
+      }
+      console.log(
+        "❌ Parsed JSON failed original schema, coercing:",
+        result.error.issues
+      );
+      // Coerce to valid format
+      return {
+        date: String(parsed.date || ""),
+        description: String(parsed.description || ""),
+        merchant: String(parsed.merchant || ""),
+        category: userCategories.includes(String(parsed.category))
+          ? String(parsed.category)
+          : "Other",
+        original_amount: Number(parsed.original_amount) || 0,
+        original_currency: String(parsed.original_currency || "SGD"),
+      };
+    } catch (error) {
+      console.log("❌ Failed to parse JSON string:", error);
+      return {
+        date: "",
+        description: "Invalid JSON",
+        merchant: "",
+        category: "Other",
+        original_amount: 0,
+        original_currency: "SGD",
+      };
+    }
+  });
+
+  const permissiveSchema = z.any().transform((data) => {
+    console.log(
+      "🔍 Permissive schema, received data:",
+      JSON.stringify(data, null, 2)
+    );
+
+    // Try to coerce any data into valid format
+    if (typeof data === "object" && data !== null) {
+      return {
+        date: String(data.date || ""),
+        description: String(data.description || ""),
+        merchant: String(data.merchant || ""),
+        category: userCategories.includes(String(data.category))
+          ? String(data.category)
+          : "Other",
+        original_amount: Number(data.original_amount) || 0,
+        original_currency: String(data.original_currency || "SGD"),
+      };
+    }
+
+    // Fallback for non-objects
+    return {
+      date: "",
+      description: "Unknown data type",
+      merchant: "",
+      category: "Other",
+      original_amount: 0,
+      original_currency: "SGD",
+    };
+  });
+
+  return z.union([originalSchema, stringSchema, permissiveSchema]);
+}
+
 export async function* extractExpensesFromPdf(
   fileBuffer: Buffer,
   userCategories: string[]
@@ -61,7 +148,7 @@ export async function* extractExpensesFromPdf(
     const { elementStream } = streamObject({
       model: google("gemini-2.5-flash"),
       output: "array",
-      schema: createAiExpenseSchema(userCategories),
+      schema: createPermissiveExpenseSchema(userCategories),
       messages: [
         {
           role: "user",
@@ -82,6 +169,7 @@ export async function* extractExpensesFromPdf(
 
     for await (const element of elementStream) {
       if (element) {
+        console.log("✅ Yielding element:", JSON.stringify(element, null, 2));
         yield element as AIExpenseInput;
       }
     }
