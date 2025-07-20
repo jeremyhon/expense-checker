@@ -1,6 +1,6 @@
 "use client";
 
-import { endOfMonth, format, startOfMonth, subMonths } from "date-fns";
+import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import type { DateRange } from "react-day-picker";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import {
+  getCurrentMonth,
+  getLastMonth,
+  getLastNMonths,
+  plainDateRangeToDateRange,
+} from "@/lib/utils/temporal-dates";
 
 export function DateRangePickerWithPresets({
   className,
@@ -35,36 +41,19 @@ export function DateRangePickerWithPresets({
   const presets = [
     {
       label: "Current month",
-      getValue: () => ({
-        from: startOfMonth(new Date()),
-        to: endOfMonth(new Date()),
-      }),
+      getValue: () => plainDateRangeToDateRange(getCurrentMonth()),
     },
     {
       label: "Last month",
-      getValue: () => {
-        const lastMonth = subMonths(new Date(), 1);
-        return { from: startOfMonth(lastMonth), to: endOfMonth(lastMonth) };
-      },
+      getValue: () => plainDateRangeToDateRange(getLastMonth()),
     },
     {
       label: "Last 3 months",
-      getValue: () => {
-        const threeMonthsAgo = subMonths(new Date(), 3);
-        const lastMonth = subMonths(new Date(), 1);
-        return {
-          from: startOfMonth(threeMonthsAgo),
-          to: endOfMonth(lastMonth),
-        };
-      },
+      getValue: () => plainDateRangeToDateRange(getLastNMonths(3)),
     },
     {
       label: "Last 6 months",
-      getValue: () => {
-        const sixMonthsAgo = subMonths(new Date(), 6);
-        const lastMonth = subMonths(new Date(), 1);
-        return { from: startOfMonth(sixMonthsAgo), to: endOfMonth(lastMonth) };
-      },
+      getValue: () => plainDateRangeToDateRange(getLastNMonths(6)),
     },
   ];
 
