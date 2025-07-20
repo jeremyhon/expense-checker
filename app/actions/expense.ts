@@ -226,6 +226,42 @@ export async function deleteExpense(
   return { success: true };
 }
 
+export async function bulkDeleteExpenses(
+  expenseIds: string[]
+): Promise<{ success?: boolean; error?: string; deletedCount?: number }> {
+  const supabase = await createClient();
+
+  // Check if user is authenticated
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Unauthorized" };
+  }
+
+  if (!expenseIds || expenseIds.length === 0) {
+    return { error: "No expenses selected for deletion" };
+  }
+
+  // Delete multiple expenses from the database
+  const { error, count } = await supabase
+    .from("expenses")
+    .delete({ count: "exact" })
+    .in("id", expenseIds)
+    .eq("user_id", user.id); // Ensure user can only delete their own expenses
+
+  if (error) {
+    console.error("Error bulk deleting expenses:", error);
+    return { error: error.message };
+  }
+
+  // Revalidate the page to reflect changes
+  revalidatePath("/");
+
+  return { success: true, deletedCount: count || 0 };
+}
+
 export async function getMonthlyExpensesByCategory(dateRange?: {
   from: Date;
   to: Date;
